@@ -1,0 +1,49 @@
+# Arduino ESP8266 SONOFF S31 Project
+
+# IDE and build files
+.vscode/settings.json
+*.tmp
+*.bak
+*~
+*.swp
+*.swo
+
+# Arduino IDE files
+*.hex
+*.elf
+*.map
+*.lst
+
+# macOS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows files
+*.exe
+*.dll
+*.pdb
+
+# Logs
+*.log
+
+# Temporary files
+temp/
+tmp/
+
+# Personal configuration (keep template)
+# config_personal.h
+
+# Build outputs
+build/
+dist/
+
+# Backup files created by some editors
+*~
+*.backup
+*.bck
+*.orig

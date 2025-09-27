@@ -3,8 +3,8 @@
  * For SONOFF S31 ESP8266 Project
  */
 
-#include "CSE7766.h"
 #include "config.h"
+#include "CSE7766.h"
 
 CSE7766::CSE7766(SoftwareSerial& serial) {
   _serial = &serial;

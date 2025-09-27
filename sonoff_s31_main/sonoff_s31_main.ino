@@ -8,6 +8,7 @@
  * - LED status indicators
  */
 
+#include "config.h"
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
@@ -15,7 +16,6 @@
 #include <espnow.h>
 #include <SoftwareSerial.h>
 #include "CSE7766.h"
-#include "config.h"
 #include "web_interface.h"
 #include "espnow_handler.h"
 

@@ -3,8 +3,8 @@
  * For SONOFF S31 ESP8266 Project
  */
 
-#include "espnow_handler.h"
 #include "config.h"
+#include "espnow_handler.h"
 
 // Global variables
 ESPNOWPeer espnowPeers[MAX_ESPNOW_PEERS];

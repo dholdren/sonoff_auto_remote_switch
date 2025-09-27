@@ -3,8 +3,8 @@
  * For SONOFF S31 ESP8266 Project
  */
 
-#include "web_interface.h"
 #include "config.h"
+#include "web_interface.h"
 #include "espnow_handler.h"
 
 extern ESP8266WebServer server;

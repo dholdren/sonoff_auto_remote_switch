@@ -38,6 +38,7 @@ struct ESPNOWPeer {
 void initESPNOW();
 void handleESPNOWMessages();
 void broadcastDeviceState();
+void broadcastHeartbeat();
 void sendCommand(uint8_t* targetMac, const String& command, const String& value);
 void onESPNOWDataReceived(uint8_t *mac, uint8_t *data, uint8_t len);
 void onESPNOWDataSent(uint8_t *mac, uint8_t status);

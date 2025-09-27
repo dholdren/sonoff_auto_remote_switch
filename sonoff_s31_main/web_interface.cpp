@@ -33,7 +33,7 @@ void handleRoot() {
 }
 
 void handleStyle() {
-  String css = R"(
+  String css = R"CSSDATA(
 * {
   margin: 0;
   padding: 0;
@@ -240,13 +240,13 @@ body {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
-)";
+)CSSDATA";
   
   server.send(200, "text/css", css);
 }
 
 void handleScript() {
-  String js = R"(
+  String js = R"JSDATA(
 let statusUpdateInterval;
 let peersUpdateInterval;
 
@@ -316,7 +316,7 @@ async function updatePeers() {
       const statusClass = peer.online ? 'online' : 'offline';
       const statusText = peer.online ? 'Online' : 'Offline';
       
-      html += `
+      html += \`
         <div class="peer-item ${statusClass}">
           <div class="peer-info">
             <div class="peer-name">${peer.deviceId || 'Unknown Device'}</div>
@@ -331,7 +331,7 @@ async function updatePeers() {
             <button onclick="sendCommand('${peer.mac}', 'relay', 'toggle')">Toggle</button>
           </div>
         </div>
-      `;
+      \`;
     });
     
     peersList.innerHTML = html;
@@ -398,7 +398,7 @@ async function sendCommand(mac, command, value) {
     alert('Error sending command. Please try again.');
   }
 }
-)";
+)JSDATA";
   
   server.send(200, "application/javascript", js);
 }

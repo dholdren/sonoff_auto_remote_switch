@@ -19,29 +19,13 @@
 #include "web_interface.h"
 #include "espnow_handler.h"
 
-// Hardware pins for SONOFF S31
-#define RELAY_PIN 12
-#define LED_PIN 13
-#define BUTTON_PIN 0
-#define CSE7766_RX_PIN 1  // GPIO1 (TX) - CSE7766 TX connects here
-#define CSE7766_TX_PIN 3  // GPIO3 (RX) - Not used but defined
-
 // Global objects
 ESP8266WebServer server(80);
 SoftwareSerial cseSerial(CSE7766_RX_PIN, CSE7766_TX_PIN);
 CSE7766 cse7766(cseSerial);
 
 // Device state
-struct DeviceState {
-  bool relayState = false;
-  float voltage = 0.0;
-  float current = 0.0;
-  float power = 0.0;
-  float energy = 0.0;
-  unsigned long lastUpdate = 0;
-  bool wifiConnected = false;
-  String deviceId;
-} deviceState;
+DeviceState deviceState;
 
 // Button handling
 unsigned long buttonPressTime = 0;

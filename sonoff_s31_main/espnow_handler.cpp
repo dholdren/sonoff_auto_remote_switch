@@ -9,7 +9,7 @@
 // Global variables
 ESPNOWPeer espnowPeers[MAX_ESPNOW_PEERS];
 int espnowPeerCount = 0;
-extern struct DeviceState deviceState;
+extern DeviceState deviceState;
 
 void initESPNOW() {
   // Set device in AP+STA mode for ESP-NOW

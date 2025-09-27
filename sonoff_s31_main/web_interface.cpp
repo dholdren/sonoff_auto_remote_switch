@@ -289,6 +289,17 @@ async function updateStatus() {
     document.getElementById('uptime').textContent = 
       `${hours}h ${minutes}m ${seconds}s`;
     
+    // Update firmware version
+    document.getElementById('firmware').textContent = data.firmwareVersion || 'Unknown';
+    
+    // Update OTA status
+    const otaStatus = document.getElementById('otaStatus');
+    if (data.otaEnabled) {
+      otaStatus.innerHTML = `<span class="status-indicator online"></span>Ready (${data.otaHostname})`;
+    } else {
+      otaStatus.innerHTML = '<span class="status-indicator offline"></span>Disabled';
+    }
+    
     // Update relay button
     const relayButton = document.getElementById('relayButton');
     relayButton.textContent = data.relay ? 'Turn OFF' : 'Turn ON';
@@ -475,6 +486,9 @@ String getStatusJSON() {
   doc["uptime"] = millis();
   doc["freeHeap"] = ESP.getFreeHeap();
   doc["chipId"] = ESP.getChipId();
+  doc["otaEnabled"] = deviceState.wifiConnected;
+  doc["otaHostname"] = String(OTA_HOSTNAME) + ".local";
+  doc["firmwareVersion"] = FIRMWARE_VERSION;
   
   String output;
   serializeJson(doc, output);
@@ -553,6 +567,14 @@ String generateWebPage() {
                     <div class="status-item" style="margin-top: 10px;">
                         <div class="label">Uptime</div>
                         <div class="value" id="uptime">---</div>
+                    </div>
+                    <div class="status-item" style="margin-top: 10px;">
+                        <div class="label">Firmware</div>
+                        <div class="value" id="firmware">---</div>
+                    </div>
+                    <div class="status-item" style="margin-top: 10px;">
+                        <div class="label">OTA Updates</div>
+                        <div class="value" id="otaStatus">---</div>
                     </div>
                 </div>
             </div>

@@ -180,6 +180,15 @@ sonoff_s31_main/
 - Control multiple devices from any web dashboard
 - Mesh network topology for extended range
 
+### OTA Updates
+1. **Initial Setup**: Device must be connected to WiFi
+2. **Arduino IDE**: 
+   - Go to Tools → Port
+   - Select "sonoff-s31.local" from Network Ports
+   - Upload sketch wirelessly
+3. **Password**: Use "sonoff123" (configurable in config.h)
+4. **Safety**: Relay automatically turns off during updates
+
 ## Troubleshooting
 
 ### Common Issues

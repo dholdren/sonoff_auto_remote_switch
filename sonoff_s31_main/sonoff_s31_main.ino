@@ -15,6 +15,7 @@
 #include <ArduinoJson.h>
 #include <espnow.h>
 #include <SoftwareSerial.h>
+#include <ArduinoOTA.h>
 #include "CSE7766.h"
 #include "web_interface.h"
 #include "espnow_handler.h"
@@ -61,6 +62,9 @@ void setup() {
   // Initialize web server
   initWebServer();
   
+  // Initialize OTA updates
+  initOTA();
+  
   // Start mDNS
   if (MDNS.begin("sonoff-s31")) {
     Serial.println("mDNS responder started: sonoff-s31.local");
@@ -71,6 +75,9 @@ void setup() {
 }
 
 void loop() {
+  // Handle OTA updates
+  ArduinoOTA.handle();
+  
   // Handle web server
   server.handleClient();
   MDNS.update();
@@ -192,4 +199,81 @@ void updateLEDStatus() {
       lastBlink = millis();
     }
   }
+}
+
+void initOTA() {
+  // Only enable OTA if WiFi is connected
+  if (!deviceState.wifiConnected) {
+    Serial.println("OTA: WiFi not connected, skipping OTA setup");
+    return;
+  }
+  
+  // Configure OTA settings
+  ArduinoOTA.setHostname(OTA_HOSTNAME);
+  ArduinoOTA.setPassword(OTA_PASSWORD);
+  ArduinoOTA.setPort(OTA_PORT);
+  
+  // OTA event callbacks
+  ArduinoOTA.onStart([]() {
+    String type;
+    if (ArduinoOTA.getCommand() == U_FLASH) {
+      type = "sketch";
+    } else { // U_SPIFFS
+      type = "filesystem";
+    }
+    
+    // Turn off relay during update for safety
+    digitalWrite(RELAY_PIN, LOW);
+    deviceState.relayState = false;
+    
+    Serial.println("OTA: Start updating " + type);
+  });
+  
+  ArduinoOTA.onEnd([]() {
+    Serial.println("\nOTA: Update completed successfully");
+  });
+  
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    static unsigned long lastProgress = 0;
+    unsigned long now = millis();
+    
+    // Update progress every 2 seconds to avoid spam
+    if (now - lastProgress > 2000) {
+      Serial.printf("OTA Progress: %u%% (%u/%u)\n", (progress / (total / 100)), progress, total);
+      lastProgress = now;
+    }
+    
+    // Blink LED during update
+    static bool otaLed = false;
+    if (now % 200 == 0) {
+      otaLed = !otaLed;
+      digitalWrite(LED_PIN, otaLed ? LOW : HIGH);
+    }
+  });
+  
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("OTA Error[%u]: ", error);
+    if (error == OTA_AUTH_ERROR) {
+      Serial.println("Auth Failed");
+    } else if (error == OTA_BEGIN_ERROR) {
+      Serial.println("Begin Failed");
+    } else if (error == OTA_CONNECT_ERROR) {
+      Serial.println("Connect Failed");
+    } else if (error == OTA_RECEIVE_ERROR) {
+      Serial.println("Receive Failed");
+    } else if (error == OTA_END_ERROR) {
+      Serial.println("End Failed");
+    }
+    
+    // Restore normal LED operation on error
+    digitalWrite(LED_PIN, HIGH);
+  });
+  
+  // Start OTA service
+  ArduinoOTA.begin();
+  
+  Serial.println("OTA: Ready for updates");
+  Serial.printf("OTA: Hostname: %s.local\n", OTA_HOSTNAME);
+  Serial.printf("OTA: Port: %d\n", OTA_PORT);
+  Serial.println("OTA: Use Arduino IDE -> Tools -> Port -> Network Port");
 }

@@ -44,6 +44,11 @@ struct DeviceState {
 #define WEB_SERVER_PORT 80
 #define WEB_UPDATE_INTERVAL 2000           // Web dashboard update interval in milliseconds
 
+// OTA Update Configuration
+#define OTA_HOSTNAME "sonoff-s31"           // OTA hostname (will be sonoff-s31.local)
+#define OTA_PASSWORD "sonoff123"            // OTA update password
+#define OTA_PORT 8266                       // OTA update port
+
 // CSE7766 Configuration
 #define CSE7766_VOLTAGE_RATIO 1.0          // Voltage calibration ratio
 #define CSE7766_CURRENT_RATIO 1.0          // Current calibration ratio

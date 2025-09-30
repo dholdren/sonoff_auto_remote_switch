@@ -362,7 +362,7 @@ async function updatePeers() {
       const statusClass = peer.online ? 'online' : 'offline';
       const statusText = peer.online ? 'Online' : 'Offline';
       
-      html += \`
+      html += `
         <div class="peer-item ${statusClass}">
           <div class="peer-info">
             <div class="peer-name">${peer.deviceId || 'Unknown Device'}</div>
@@ -377,7 +377,7 @@ async function updatePeers() {
             <button onclick="sendCommand('${peer.mac}', 'relay', 'toggle')">Toggle</button>
           </div>
         </div>
-      \`;
+      `;
     });
     
     peersList.innerHTML = html;

@@ -16,6 +16,7 @@
 #include <espnow.h>
 #include <SoftwareSerial.h>
 #include <ArduinoOTA.h>
+#include <LittleFS.h>
 #include "CSE7766.h"
 #include "web_interface.h"
 #include "espnow_handler.h"
@@ -49,12 +50,22 @@ void setup() {
   digitalWrite(LED_PIN, HIGH); // LED off (inverted)
   
   // Initialize CSE7766 sensor
-  cseSerial.begin(4800);
-  cse7766.begin();
-  Serial.println("CSE7766 sensor initialized");
+  // cseSerial.begin(4800);
+  // cse7766.begin();
+  // Serial.println("CSE7766 sensor initialized");
   
   // Initialize WiFi
   initWiFi();
+  
+  // Initialize LittleFS for pairing data storage
+  if (!LittleFS.begin()) {
+    Serial.println("Failed to mount LittleFS filesystem");
+  } else {
+    Serial.println("LittleFS filesystem mounted successfully");
+  }
+  
+  // Load pairing data from flash
+  loadPairingData();
   
   // Initialize ESP-NOW
   initESPNOW();
@@ -90,6 +101,9 @@ void loop() {
   
   // Handle ESP-NOW messages
   handleESPNOWMessages();
+  
+  // Handle pairing mode
+  //handlePairingMode();
   
   // Update LED status
   updateLEDStatus();
@@ -146,9 +160,22 @@ void handleButton() {
     if (pressDuration > 50 && pressDuration < 3000) {
       // Short press: toggle relay
       toggleRelay();
-    } else if (pressDuration >= 3000) {
-      // Long press: reset WiFi settings (for future implementation)
+    } else if (pressDuration >= 3000 && pressDuration < PAIRING_BUTTON_HOLD_TIME) {
+      // Long press (3-10s): reset WiFi settings (for future implementation)
       Serial.println("Long press detected - WiFi reset requested");
+    } else if (pressDuration >= PAIRING_BUTTON_HOLD_TIME) {
+      // Very long press (10+ seconds): enter pairing mode
+      Serial.println("Pairing mode button press detected");
+      enterPairingMode();
+    }
+  }
+  
+  // Check if button is still being held for pairing mode
+  if (currentButtonState && buttonPressed && !deviceState.pairingMode) {
+    unsigned long holdDuration = millis() - buttonPressTime;
+    if (holdDuration >= PAIRING_BUTTON_HOLD_TIME) {
+      Serial.println("Entering pairing mode...");
+      enterPairingMode();
     }
   }
 }
@@ -188,16 +215,27 @@ void updateLEDStatus() {
   static unsigned long lastBlink = 0;
   static bool ledState = false;
   
-  if (deviceState.wifiConnected) {
-    // Solid on when WiFi connected
+  unsigned long currentTime = millis();
+  unsigned long blinkInterval;
+  
+  // Determine LED behavior based on device state
+  if (deviceState.pairingMode) {
+    // Fast blink in pairing mode
+    blinkInterval = deviceState.isParent ? PAIRING_LED_SLOW_BLINK : PAIRING_LED_FAST_BLINK;
+  } else if (deviceState.wifiConnected) {
+    // Solid on when WiFi connected and not pairing
     digitalWrite(LED_PIN, LOW);
+    return;
   } else {
-    // Blink when no WiFi
-    if (millis() - lastBlink > 500) {
-      ledState = !ledState;
-      digitalWrite(LED_PIN, ledState ? LOW : HIGH);
-      lastBlink = millis();
-    }
+    // Normal blink when no WiFi
+    blinkInterval = 500;
+  }
+  
+  // Blink LED based on determined interval
+  if (currentTime - lastBlink > blinkInterval) {
+    ledState = !ledState;
+    digitalWrite(LED_PIN, ledState ? LOW : HIGH);
+    lastBlink = currentTime;
   }
 }
 

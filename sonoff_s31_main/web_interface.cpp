@@ -21,6 +21,7 @@ void initWebServer() {
   server.on("/api/relay", HTTP_POST, handleSetRelay);
   server.on("/api/peers", HTTP_GET, handleGetPeers);
   server.on("/api/command", HTTP_POST, handleSendCommand);
+  server.on("/api/pairing", HTTP_POST, handlePairing);
   
   server.onNotFound(handleNotFound);
   
@@ -300,6 +301,40 @@ async function updateStatus() {
       otaStatus.innerHTML = '<span class="status-indicator offline"></span>Disabled';
     }
     
+    // Update pairing status
+    const pairingMode = document.getElementById('pairingMode');
+    if (data.pairingMode) {
+      pairingMode.innerHTML = '<span class="status-indicator online"></span>Active';
+    } else {
+      pairingMode.innerHTML = '<span class="status-indicator offline"></span>Inactive';
+    }
+    
+    // Update device role
+    const deviceRole = document.getElementById('deviceRole');
+    if (data.isParent) {
+      deviceRole.innerHTML = '<span class="status-indicator online"></span>Parent';
+    } else if (data.hasParent) {
+      deviceRole.innerHTML = '<span class="status-indicator online"></span>Child';
+    } else {
+      deviceRole.innerHTML = '<span class="status-indicator offline"></span>Standalone';
+    }
+    
+    // Update parent device
+    const parentDevice = document.getElementById('parentDevice');
+    if (data.hasParent && data.parentMac) {
+      parentDevice.textContent = data.parentMac;
+    } else {
+      parentDevice.textContent = 'None';
+    }
+    
+    // Update child devices
+    const childDevices = document.getElementById('childDevices');
+    if (data.childCount > 0) {
+      childDevices.textContent = `${data.childCount} connected`;
+    } else {
+      childDevices.textContent = 'None';
+    }
+    
     // Update relay button
     const relayButton = document.getElementById('relayButton');
     relayButton.textContent = data.relay ? 'Turn OFF' : 'Turn ON';
@@ -409,6 +444,52 @@ async function sendCommand(mac, command, value) {
     alert('Error sending command. Please try again.');
   }
 }
+
+async function enterPairingMode() {
+  if (confirm('Enter pairing mode? Device will listen for parent/child devices.')) {
+    try {
+      const response = await fetch('/api/pairing', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'enter' })
+      });
+      
+      if (response.ok) {
+        alert('Pairing mode activated! LED will blink to indicate status.');
+      } else {
+        throw new Error('Failed to enter pairing mode');
+      }
+    } catch (error) {
+      console.error('Error entering pairing mode:', error);
+      alert('Error entering pairing mode. Please try again.');
+    }
+  }
+}
+
+async function clearPairingData() {
+  if (confirm('Clear all pairing data? This will remove parent/child relationships.')) {
+    try {
+      const response = await fetch('/api/pairing', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'clear' })
+      });
+      
+      if (response.ok) {
+        alert('Pairing data cleared successfully!');
+      } else {
+        throw new Error('Failed to clear pairing data');
+      }
+    } catch (error) {
+      console.error('Error clearing pairing data:', error);
+      alert('Error clearing pairing data. Please try again.');
+    }
+  }
+}
 )JSDATA";
   
   server.send(200, "application/javascript", js);
@@ -469,6 +550,28 @@ void handleSendCommand() {
   }
 }
 
+void handlePairing() {
+  if (server.hasArg("plain")) {
+    DynamicJsonDocument doc(200);
+    deserializeJson(doc, server.arg("plain"));
+    
+    String action = doc["action"];
+    
+    if (action == "enter") {
+      enterPairingMode();
+      server.send(200, "application/json", "{\"status\":\"success\",\"message\":\"Pairing mode activated\"}");
+    } else if (action == "clear") {
+      clearPairingData();
+      savePairingData(); // Save cleared state
+      server.send(200, "application/json", "{\"status\":\"success\",\"message\":\"Pairing data cleared\"}");
+    } else {
+      server.send(400, "application/json", "{\"error\":\"Invalid action\"}");
+    }
+  } else {
+    server.send(400, "application/json", "{\"error\":\"Invalid request\"}");
+  }
+}
+
 void handleNotFound() {
   server.send(404, "text/plain", "File Not Found");
 }
@@ -489,6 +592,19 @@ String getStatusJSON() {
   doc["otaEnabled"] = deviceState.wifiConnected;
   doc["otaHostname"] = String(OTA_HOSTNAME) + ".local";
   doc["firmwareVersion"] = FIRMWARE_VERSION;
+  doc["pairingMode"] = deviceState.pairingMode;
+  doc["isParent"] = deviceState.isParent;
+  doc["hasParent"] = deviceState.hasParent;
+  doc["childCount"] = deviceState.childCount;
+  
+  if (deviceState.hasParent) {
+    doc["parentMac"] = macToString(deviceState.parentMac);
+  }
+  
+  JsonArray children = doc.createNestedArray("children");
+  for (int i = 0; i < deviceState.childCount; i++) {
+    children.add(macToString(deviceState.childMacs[i]));
+  }
   
   String output;
   serializeJson(doc, output);
@@ -513,7 +629,7 @@ String getPeersJSON() {
 }
 
 String generateWebPage() {
-  return R"(
+  return R"HTMLDATA(
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -579,6 +695,33 @@ String generateWebPage() {
                 </div>
             </div>
             
+            <!-- Pairing Status Card -->
+            <div class="card">
+                <h3>Device Pairing</h3>
+                <div class="status-grid">
+                    <div class="status-item">
+                        <div class="label">Pairing Mode</div>
+                        <div class="value" id="pairingMode">---</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="label">Device Role</div>
+                        <div class="value" id="deviceRole">---</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="label">Parent Device</div>
+                        <div class="value" id="parentDevice">---</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="label">Child Devices</div>
+                        <div class="value" id="childDevices">---</div>
+                    </div>
+                </div>
+                <div style="margin-top: 20px; text-align: center;">
+                    <button onclick="enterPairingMode()" class="relay-button" style="background: linear-gradient(45deg, #FF9800, #F57C00); margin-right: 10px;">Enter Pairing Mode</button>
+                    <button onclick="clearPairingData()" class="relay-button" style="background: linear-gradient(45deg, #f44336, #d32f2f);">Clear Pairing Data</button>
+                </div>
+            </div>
+            
             <!-- ESP-NOW Peers Card -->
             <div class="card">
                 <h3>ESP-NOW Network</h3>
@@ -592,5 +735,5 @@ String generateWebPage() {
     <script src="/script.js"></script>
 </body>
 </html>
-  )";
+  )HTMLDATA";
 }

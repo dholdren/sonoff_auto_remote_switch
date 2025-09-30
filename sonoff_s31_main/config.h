@@ -8,6 +8,9 @@
 
 #include <Arduino.h>
 
+// ESP-NOW Pairing Configuration Constants
+#define MAX_CHILDREN 5                      // Maximum number of child devices
+
 // Device state structure
 struct DeviceState {
   bool relayState = false;
@@ -18,6 +21,15 @@ struct DeviceState {
   unsigned long lastUpdate = 0;
   bool wifiConnected = false;
   String deviceId;
+  
+  // Pairing state
+  bool pairingMode = false;
+  bool isParent = false;
+  bool hasParent = false;
+  unsigned long pairingStartTime = 0;
+  uint8_t parentMac[6];
+  uint8_t childCount = 0;
+  uint8_t childMacs[MAX_CHILDREN][6];
 };
 
 // Hardware pins for SONOFF S31
@@ -28,8 +40,8 @@ struct DeviceState {
 #define CSE7766_TX_PIN 3  // GPIO3 (RX) - Not used but defined
 
 // WiFi Configuration
-#define WIFI_SSID "YourWiFiNetwork"        // Replace with your WiFi network name
-#define WIFI_PASSWORD "YourWiFiPassword"   // Replace with your WiFi password
+#define WIFI_SSID "HOLDREN24G"        // Replace with your WiFi network name
+#define WIFI_PASSWORD "9734607838"   // Replace with your WiFi password
 
 // Access Point Configuration (for initial setup)
 #define AP_SSID "SONOFF-S31-Setup"
@@ -39,6 +51,29 @@ struct DeviceState {
 #define ESPNOW_CHANNEL 1
 #define ESPNOW_BROADCAST_INTERVAL 10000    // Broadcast interval in milliseconds
 #define MAX_ESPNOW_PEERS 10
+
+// ESP-NOW Pairing Configuration
+#define PAIRING_MODE_TIMEOUT 60000         // Pairing mode timeout in milliseconds
+#define PAIRING_BUTTON_HOLD_TIME 10000     // Button hold time to enter pairing mode
+#define PAIRING_LED_FAST_BLINK 100         // Fast blink interval for pairing mode
+#define PAIRING_LED_SLOW_BLINK 500         // Slow blink interval for parent mode
+
+// Flash Storage Configuration (LittleFS)
+#define PAIRING_FILE "/pairing.dat"        // File name for pairing data
+#define FLASH_MAGIC 0xA5B4                 // Magic number to verify valid data
+#define FLASH_VERSION 1
+
+// Pairing data structure for flash storage
+struct PairingData {
+  uint16_t magic;                       // Magic number for validation
+  uint8_t version;                      // Data structure version
+  bool isParent;                        // True if this device is a parent
+  bool hasParent;                       // True if this device has a parent
+  uint8_t parentMac[6];                 // Parent device MAC address
+  uint8_t childCount;                   // Number of child devices
+  uint8_t childMacs[MAX_CHILDREN][6];   // Child device MAC addresses
+  uint32_t checksum;                    // Data integrity checksum
+};
 
 // Web Server Configuration
 #define WEB_SERVER_PORT 80

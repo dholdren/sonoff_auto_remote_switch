@@ -15,7 +15,9 @@ enum ESPNOWMessageType {
   MSG_DEVICE_STATE = 1,
   MSG_COMMAND = 2,
   MSG_DISCOVERY = 3,
-  MSG_HEARTBEAT = 4
+  MSG_HEARTBEAT = 4,
+  MSG_PAIRING = 5,
+  MSG_PAIRING_RESPONSE = 6
 };
 
 // ESP-NOW message structure
@@ -47,6 +49,20 @@ void removePeer(uint8_t* mac);
 void updatePeerList();
 String macToString(uint8_t* mac);
 void stringToMac(const String& macStr, uint8_t* mac);
+
+// Pairing functions
+void enterPairingMode();
+void exitPairingMode();
+void handlePairingMode();
+void sendPairingMessage(bool isParent);
+void processPairingMessage(uint8_t* senderMac, const char* payload);
+void savePairingData();
+void loadPairingData();
+bool addChild(uint8_t* childMac);
+bool setParent(uint8_t* parentMac);
+uint32_t calculateChecksum(const PairingData* data);
+void clearPairingData();
+void printPairingStatus();
 
 // Global variables
 extern ESPNOWPeer espnowPeers[MAX_ESPNOW_PEERS];

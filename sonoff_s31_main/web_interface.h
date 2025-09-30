@@ -17,6 +17,7 @@ void handleGetStatus();
 void handleSetRelay();
 void handleGetPeers();
 void handleSendCommand();
+void handlePairing();
 void handleNotFound();
 void handleStyle();
 void handleScript();

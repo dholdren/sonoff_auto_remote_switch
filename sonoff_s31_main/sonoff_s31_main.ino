@@ -50,9 +50,8 @@ void setup() {
   digitalWrite(LED_PIN, HIGH); // LED off (inverted)
   
   // Initialize CSE7766 sensor
-  // cseSerial.begin(4800);
-  // cse7766.begin();
-  // Serial.println("CSE7766 sensor initialized");
+  cseSerial.begin(4800,SWSERIAL_8E1);
+  Serial.println("CSE7766 sensor initialized");
   
   // Initialize WiFi
   initWiFi();
@@ -103,7 +102,7 @@ void loop() {
   handleESPNOWMessages();
   
   // Handle pairing mode
-  //handlePairingMode();
+  handlePairingMode();
   
   // Update LED status
   updateLEDStatus();

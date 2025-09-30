@@ -36,8 +36,8 @@ struct DeviceState {
 #define RELAY_PIN 12
 #define LED_PIN 13
 #define BUTTON_PIN 0
-#define CSE7766_RX_PIN 1  // GPIO1 (TX) - CSE7766 TX connects here
-#define CSE7766_TX_PIN 3  // GPIO3 (RX) - Not used but defined
+#define CSE7766_RX_PIN 6  // GPIO1 (TX) - CSE7766 TX connects here
+#define CSE7766_TX_PIN 8  // GPIO3 (RX) - Not used but defined
 
 // WiFi Configuration
 #define WIFI_SSID "HOLDREN24G"        // Replace with your WiFi network name

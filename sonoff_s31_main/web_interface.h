@@ -8,9 +8,12 @@
 
 #include <ESP8266WebServer.h>
 #include <ArduinoJson.h>
+#include <WebSocketsServer.h>
 
 // Function declarations
 void initWebServer();
+void handleWebSocket();
+void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length);
 void handleRoot();
 void handleAPI();
 void handleGetStatus();
@@ -26,5 +29,8 @@ void handleScript();
 String getStatusJSON();
 String getPeersJSON();
 String generateWebPage();
+
+// WebSocket server reference
+extern WebSocketsServer webSocket;
 
 #endif // WEB_INTERFACE_H

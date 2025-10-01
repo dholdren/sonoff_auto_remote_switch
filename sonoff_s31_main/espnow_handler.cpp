@@ -6,6 +6,7 @@
 #include "config.h"
 #include "espnow_handler.h"
 #include <LittleFS.h>
+#include "Logger.h"
 
 // Global variables
 ESPNOWPeer espnowPeers[MAX_ESPNOW_PEERS];
@@ -18,7 +19,7 @@ void initESPNOW() {
   
   // Initialize ESP-NOW
   if (esp_now_init() != 0) {
-    Serial.println("Error initializing ESP-NOW");
+    logger.println("Error initializing ESP-NOW");
     return;
   }
   
@@ -33,10 +34,10 @@ void initESPNOW() {
   uint8_t broadcastMac[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
   esp_now_add_peer(broadcastMac, ESP_NOW_ROLE_COMBO, ESPNOW_CHANNEL, NULL, 0);
   
-  Serial.println("ESP-NOW initialized successfully");
+  logger.println("ESP-NOW initialized successfully");
   
   #if DEBUG_ESPNOW
-  Serial.printf("ESP-NOW MAC: %s\n", WiFi.macAddress().c_str());
+  logger.printf("ESP-NOW MAC: %s\n", WiFi.macAddress().c_str());
   #endif
 }
 
@@ -82,7 +83,7 @@ void broadcastDeviceState() {
   #if DEBUG_ESPNOW
   static unsigned long lastDebug = 0;
   if (millis() - lastDebug > 10000) {
-    Serial.println("ESP-NOW: Device state broadcasted");
+    logger.println("ESP-NOW: Device state broadcasted");
     lastDebug = millis();
   }
   #endif
@@ -122,7 +123,7 @@ void sendCommand(uint8_t* targetMac, const String& command, const String& value)
   esp_now_send(targetMac, (uint8_t*)&msg, sizeof(msg));
   
   #if DEBUG_ESPNOW
-  Serial.printf("ESP-NOW: Command sent to %s: %s=%s\n", 
+  logger.printf("ESP-NOW: Command sent to %s: %s=%s\n", 
                 macToString(targetMac).c_str(), command.c_str(), value.c_str());
   #endif
 }
@@ -135,7 +136,7 @@ void onESPNOWDataReceived(uint8_t *mac, uint8_t *data, uint8_t len) {
   ESPNOWMessage* msg = (ESPNOWMessage*)data;
   
   #if DEBUG_ESPNOW
-  Serial.printf("ESP-NOW: Received message type %d from %s\n", 
+  logger.printf("ESP-NOW: Received message type %d from %s\n", 
                 msg->messageType, macToString(mac).c_str());
   #endif
   
@@ -180,7 +181,7 @@ void onESPNOWDataReceived(uint8_t *mac, uint8_t *data, uint8_t len) {
           digitalWrite(RELAY_PIN, deviceState.relayState ? HIGH : LOW);
         }
         
-        Serial.printf("ESP-NOW: Relay command received: %s\n", value.c_str());
+        logger.printf("ESP-NOW: Relay command received: %s\n", value.c_str());
         broadcastDeviceState(); // Broadcast updated state
       }
       break;
@@ -216,7 +217,7 @@ void onESPNOWDataReceived(uint8_t *mac, uint8_t *data, uint8_t len) {
 void onESPNOWDataSent(uint8_t *mac, uint8_t status) {
   #if DEBUG_ESPNOW
   if (status != 0) {
-    Serial.printf("ESP-NOW: Send failed to %s, status: %d\n", 
+    logger.printf("ESP-NOW: Send failed to %s, status: %d\n", 
                   macToString(mac).c_str(), status);
   }
   #endif
@@ -243,7 +244,7 @@ void addPeer(uint8_t* mac) {
     esp_now_add_peer(mac, ESP_NOW_ROLE_COMBO, ESPNOW_CHANNEL, NULL, 0);
     
     #if DEBUG_ESPNOW
-    Serial.printf("ESP-NOW: New peer added: %s\n", macToString(mac).c_str());
+    logger.printf("ESP-NOW: New peer added: %s\n", macToString(mac).c_str());
     #endif
   }
 }
@@ -261,7 +262,7 @@ void removePeer(uint8_t* mac) {
       espnowPeerCount--;
       
       #if DEBUG_ESPNOW
-      Serial.printf("ESP-NOW: Peer removed: %s\n", macToString(mac).c_str());
+      logger.printf("ESP-NOW: Peer removed: %s\n", macToString(mac).c_str());
       #endif
       break;
     }
@@ -306,8 +307,8 @@ void enterPairingMode() {
   deviceState.pairingMode = true;
   deviceState.pairingStartTime = millis();
   
-  Serial.println("\n=== ENTERING PAIRING MODE ===");
-  Serial.println("Listening for parent devices for 5 seconds...");
+  logger.println("\n=== ENTERING PAIRING MODE ===");
+  logger.println("Listening for parent devices for 5 seconds...");
   
   // Wait 5 seconds to listen for existing parent devices
   unsigned long listenStart = millis();
@@ -324,11 +325,11 @@ void enterPairingMode() {
   // If no parent found after 5 seconds, become parent
   if (!deviceState.hasParent) {
     deviceState.isParent = true;
-    Serial.println("No parent found - becoming PARENT device");
-    Serial.println("LED will blink slowly, sending pairing messages...");
+    logger.println("No parent found - becoming PARENT device");
+    logger.println("LED will blink slowly, sending pairing messages...");
   } else {
-    Serial.println("Parent device found - remaining as CHILD device");
-    Serial.println("LED will blink fast, listening for parent confirmation...");
+    logger.println("Parent device found - remaining as CHILD device");
+    logger.println("LED will blink fast, listening for parent confirmation...");
   }
   
   printPairingStatus();
@@ -341,12 +342,12 @@ void exitPairingMode() {
   
   deviceState.pairingMode = false;
   
-  Serial.println("\n=== EXITING PAIRING MODE ===");
+  logger.println("\n=== EXITING PAIRING MODE ===");
   
   // Save pairing data to flash
   savePairingData();
   
-  Serial.println("Pairing data saved to flash storage");
+  logger.println("Pairing data saved to flash storage");
   printPairingStatus();
 }
 
@@ -359,7 +360,7 @@ void handlePairingMode() {
   
   // Check for pairing timeout
   if (currentTime - deviceState.pairingStartTime > PAIRING_MODE_TIMEOUT) {
-    Serial.println("Pairing mode timeout - exiting");
+    logger.println("Pairing mode timeout - exiting");
     exitPairingMode();
     return;
   }
@@ -406,7 +407,7 @@ void sendPairingMessage(bool isParent) {
   esp_now_send(broadcastMac, (uint8_t*)&msg, sizeof(msg));
   
   #if DEBUG_ESPNOW
-  Serial.printf("Pairing message sent - isParent: %s\n", isParent ? "true" : "false");
+  logger.printf("Pairing message sent - isParent: %s\n", isParent ? "true" : "false");
   #endif
 }
 
@@ -419,7 +420,7 @@ void processPairingMessage(uint8_t* senderMac, const char* payload) {
   bool senderHasParent = doc["hasParent"];
   
   #if DEBUG_ESPNOW
-  Serial.printf("Pairing message from %s: isParent=%s, hasParent=%s\n", 
+  logger.printf("Pairing message from %s: isParent=%s, hasParent=%s\n", 
                 macToString(senderMac).c_str(), 
                 senderIsParent ? "true" : "false",
                 senderHasParent ? "true" : "false");
@@ -428,7 +429,7 @@ void processPairingMessage(uint8_t* senderMac, const char* payload) {
   // If we're in pairing mode and sender is a parent, set them as our parent
   if (deviceState.pairingMode && !deviceState.hasParent && senderIsParent) {
     if (setParent(senderMac)) {
-      Serial.printf("Set parent device: %s (%s)\n", 
+      logger.printf("Set parent device: %s (%s)\n", 
                    macToString(senderMac).c_str(), senderDeviceId.c_str());
       
       // Send pairing response
@@ -452,7 +453,7 @@ void processPairingMessage(uint8_t* senderMac, const char* payload) {
   // If we're a parent and sender wants to pair, add them as child
   if (deviceState.isParent && deviceState.pairingMode && !senderHasParent) {
     if (addChild(senderMac)) {
-      Serial.printf("Added child device: %s (%s)\n", 
+      logger.printf("Added child device: %s (%s)\n", 
                    macToString(senderMac).c_str(), senderDeviceId.c_str());
     }
   }
@@ -460,7 +461,7 @@ void processPairingMessage(uint8_t* senderMac, const char* payload) {
 
 bool setParent(uint8_t* parentMac) {
   if (deviceState.hasParent) {
-    Serial.println("Already have a parent - ignoring");
+    logger.println("Already have a parent - ignoring");
     return false;
   }
   
@@ -476,14 +477,14 @@ bool setParent(uint8_t* parentMac) {
 
 bool addChild(uint8_t* childMac) {
   if (deviceState.childCount >= MAX_CHILDREN) {
-    Serial.println("Maximum children reached - cannot add more");
+    logger.println("Maximum children reached - cannot add more");
     return false;
   }
   
   // Check if already a child
   for (int i = 0; i < deviceState.childCount; i++) {
     if (memcmp(deviceState.childMacs[i], childMac, 6) == 0) {
-      Serial.println("Device already registered as child");
+      logger.println("Device already registered as child");
       return false;
     }
   }
@@ -524,9 +525,9 @@ void savePairingData() {
   if (file) {
     file.write((uint8_t*)&data, sizeof(PairingData));
     file.close();
-    Serial.println("Pairing data saved to flash storage");
+    logger.println("Pairing data saved to flash storage");
   } else {
-    Serial.println("Failed to open pairing file for writing");
+    logger.println("Failed to open pairing file for writing");
   }
 }
 
@@ -535,7 +536,7 @@ void loadPairingData() {
   
   // Check if pairing file exists
   if (!LittleFS.exists(PAIRING_FILE)) {
-    Serial.println("No pairing data file found - using defaults");
+    logger.println("No pairing data file found - using defaults");
     clearPairingData();
     return;
   }
@@ -543,13 +544,13 @@ void loadPairingData() {
   // Read from LittleFS
   File file = LittleFS.open(PAIRING_FILE, "r");
   if (!file) {
-    Serial.println("Failed to open pairing file for reading - using defaults");
+    logger.println("Failed to open pairing file for reading - using defaults");
     clearPairingData();
     return;
   }
   
   if (file.size() != sizeof(PairingData)) {
-    Serial.println("Pairing file size mismatch - using defaults");
+    logger.println("Pairing file size mismatch - using defaults");
     file.close();
     clearPairingData();
     return;
@@ -560,7 +561,7 @@ void loadPairingData() {
   
   // Validate magic number and version
   if (data.magic != FLASH_MAGIC || data.version != FLASH_VERSION) {
-    Serial.println("No valid pairing data found in flash - using defaults");
+    logger.println("No valid pairing data found in flash - using defaults");
     clearPairingData();
     return;
   }
@@ -571,7 +572,7 @@ void loadPairingData() {
   uint32_t calculatedChecksum = calculateChecksum(&data);
   
   if (storedChecksum != calculatedChecksum) {
-    Serial.println("Flash data checksum mismatch - using defaults");
+    logger.println("Flash data checksum mismatch - using defaults");
     clearPairingData();
     return;
   }
@@ -593,7 +594,7 @@ void loadPairingData() {
     esp_now_add_peer(deviceState.childMacs[i], ESP_NOW_ROLE_COMBO, ESPNOW_CHANNEL, NULL, 0);
   }
   
-  Serial.println("Pairing data loaded from flash storage");
+  logger.println("Pairing data loaded from flash storage");
   printPairingStatus();
 }
 
@@ -619,27 +620,27 @@ void clearPairingData() {
   // Remove pairing file from flash storage
   if (LittleFS.exists(PAIRING_FILE)) {
     LittleFS.remove(PAIRING_FILE);
-    Serial.println("Pairing file removed from flash storage");
+    logger.println("Pairing file removed from flash storage");
   }
   
-  Serial.println("Pairing data cleared");
+  logger.println("Pairing data cleared");
 }
 
 void printPairingStatus() {
-  Serial.println("\n=== PAIRING STATUS ===");
-  Serial.printf("Device ID: %s\n", deviceState.deviceId.c_str());
-  Serial.printf("Is Parent: %s\n", deviceState.isParent ? "YES" : "NO");
-  Serial.printf("Has Parent: %s\n", deviceState.hasParent ? "YES" : "NO");
+  logger.println("\n=== PAIRING STATUS ===");
+  logger.printf("Device ID: %s\n", deviceState.deviceId.c_str());
+  logger.printf("Is Parent: %s\n", deviceState.isParent ? "YES" : "NO");
+  logger.printf("Has Parent: %s\n", deviceState.hasParent ? "YES" : "NO");
   
   if (deviceState.hasParent) {
-    Serial.printf("Parent MAC: %s\n", macToString(deviceState.parentMac).c_str());
+    logger.printf("Parent MAC: %s\n", macToString(deviceState.parentMac).c_str());
   }
   
-  Serial.printf("Children: %d/%d\n", deviceState.childCount, MAX_CHILDREN);
+  logger.printf("Children: %d/%d\n", deviceState.childCount, MAX_CHILDREN);
   for (int i = 0; i < deviceState.childCount; i++) {
-    Serial.printf("  Child %d: %s\n", i + 1, macToString(deviceState.childMacs[i]).c_str());
+    logger.printf("  Child %d: %s\n", i + 1, macToString(deviceState.childMacs[i]).c_str());
   }
   
-  Serial.printf("Pairing Mode: %s\n", deviceState.pairingMode ? "ACTIVE" : "INACTIVE");
-  Serial.println("=====================\n");
+  logger.printf("Pairing Mode: %s\n", deviceState.pairingMode ? "ACTIVE" : "INACTIVE");
+  logger.println("=====================\n");
 }

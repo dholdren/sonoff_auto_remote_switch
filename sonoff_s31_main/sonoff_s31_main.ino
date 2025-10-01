@@ -20,6 +20,7 @@
 #include "CSE7766.h"
 #include "web_interface.h"
 #include "espnow_handler.h"
+#include "Logger.h"
 
 // Global objects
 ESP8266WebServer server(80);
@@ -37,7 +38,7 @@ String HOSTNAME = "sonoff-s31-" + UNIQUE_ID;
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("\n--- SONOFF S31 ESP8266 Starting ---");
+  logger.println("\n--- SONOFF S31 ESP8266 Starting ---");
   
   // Initialize device ID
   deviceState.deviceId = "SONOFF_S31_" + UNIQUE_ID;
@@ -60,9 +61,9 @@ void setup() {
   
   // Initialize LittleFS for pairing data storage
   if (!LittleFS.begin()) {
-    Serial.println("Failed to mount LittleFS filesystem");
+    logger.println("Failed to mount LittleFS filesystem");
   } else {
-    Serial.println("LittleFS filesystem mounted successfully");
+    logger.println("LittleFS filesystem mounted successfully");
   }
   
   // Load pairing data from flash
@@ -82,8 +83,9 @@ void setup() {
     Serial.printf("mDNS responder started: %s\n", HOSTNAME.c_str());
   }
   
-  Serial.printf("Device ID: %s\n", deviceState.deviceId.c_str());
-  Serial.println("Setup completed successfully!");
+  // Print device information
+  logger.printf("Device ID: %s\n", deviceState.deviceId.c_str());
+  logger.println("Setup completed successfully!");
 }
 
 void loop() {
@@ -93,6 +95,9 @@ void loop() {
   // Handle web server
   server.handleClient();
   MDNS.update();
+  
+  // Handle WebSocket connections
+  handleWebSocket();
   
   // Handle button press
   handleButton();

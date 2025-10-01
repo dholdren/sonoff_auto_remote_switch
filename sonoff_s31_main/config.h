@@ -77,6 +77,7 @@ struct PairingData {
 
 // Web Server Configuration
 #define WEB_SERVER_PORT 80
+#define WEBSOCKET_PORT 81                  // WebSocket port for debug logging
 #define WEB_UPDATE_INTERVAL 2000           // Web dashboard update interval in milliseconds
 
 // OTA Update Configuration

@@ -9,6 +9,7 @@
 
 extern ESP8266WebServer server;
 extern struct DeviceState deviceState;
+extern const char* HOSTNAME;
 
 void initWebServer() {
   // Web pages
@@ -590,7 +591,7 @@ String getStatusJSON() {
   doc["freeHeap"] = ESP.getFreeHeap();
   doc["chipId"] = ESP.getChipId();
   doc["otaEnabled"] = deviceState.wifiConnected;
-  doc["otaHostname"] = String(OTA_HOSTNAME) + ".local";
+  doc["otaHostname"] = String(HOSTNAME) + ".local";
   doc["firmwareVersion"] = FIRMWARE_VERSION;
   doc["pairingMode"] = deviceState.pairingMode;
   doc["isParent"] = deviceState.isParent;

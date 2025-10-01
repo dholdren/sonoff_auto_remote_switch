@@ -32,14 +32,16 @@ DeviceState deviceState;
 // Button handling
 unsigned long buttonPressTime = 0;
 bool buttonPressed = false;
+String UNIQUE_ID = String(ESP.getChipId(), HEX);
+String HOSTNAME = "sonoff-s31-" + UNIQUE_ID;
 
 void setup() {
   Serial.begin(115200);
   Serial.println("\n--- SONOFF S31 ESP8266 Starting ---");
   
   // Initialize device ID
-  deviceState.deviceId = "SONOFF_S31_" + String(ESP.getChipId(), HEX);
-  
+  deviceState.deviceId = "SONOFF_S31_" + UNIQUE_ID;
+
   // Initialize hardware pins
   pinMode(RELAY_PIN, OUTPUT);
   pinMode(LED_PIN, OUTPUT);
@@ -76,8 +78,8 @@ void setup() {
   initOTA();
   
   // Start mDNS
-  if (MDNS.begin("sonoff-s31")) {
-    Serial.println("mDNS responder started: sonoff-s31.local");
+  if (MDNS.begin(HOSTNAME)) {
+    Serial.printf("mDNS responder started: %s\n", HOSTNAME.c_str());
   }
   
   Serial.printf("Device ID: %s\n", deviceState.deviceId.c_str());
@@ -121,8 +123,10 @@ void initWiFi() {
   WiFi.mode(WIFI_AP_STA);
   
   // Start Access Point
-  WiFi.softAP(AP_SSID, AP_PASSWORD);
-  Serial.printf("Access Point started: %s\n", AP_SSID);
+  String UNIQUE_AP_SSID = String(AP_SSID) + String("-") + UNIQUE_ID;
+  WiFi.softAP(UNIQUE_AP_SSID, AP_PASSWORD);
+  Serial.printf("Access Point started: %s\n", WiFi.softAPSSID().c_str());
+
   Serial.printf("AP IP address: %s\n", WiFi.softAPIP().toString().c_str());
   
   // Connect to WiFi network
@@ -246,7 +250,7 @@ void initOTA() {
   }
   
   // Configure OTA settings
-  ArduinoOTA.setHostname(OTA_HOSTNAME);
+  ArduinoOTA.setHostname(HOSTNAME.c_str());
   ArduinoOTA.setPassword(OTA_PASSWORD);
   ArduinoOTA.setPort(OTA_PORT);
   
@@ -310,7 +314,7 @@ void initOTA() {
   ArduinoOTA.begin();
   
   Serial.println("OTA: Ready for updates");
-  Serial.printf("OTA: Hostname: %s.local\n", OTA_HOSTNAME);
+  Serial.printf("OTA: Hostname: %s.local\n", ArduinoOTA.getHostname().c_str());
   Serial.printf("OTA: Port: %d\n", OTA_PORT);
   Serial.println("OTA: Use Arduino IDE -> Tools -> Port -> Network Port");
 }

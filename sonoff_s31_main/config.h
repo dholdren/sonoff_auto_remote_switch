@@ -80,7 +80,6 @@ struct PairingData {
 #define WEB_UPDATE_INTERVAL 2000           // Web dashboard update interval in milliseconds
 
 // OTA Update Configuration
-#define OTA_HOSTNAME "sonoff-s31"           // OTA hostname (will be sonoff-s31.local)
 #define OTA_PASSWORD "sonoff123"            // OTA update password
 #define OTA_PORT 8266                       // OTA update port
 

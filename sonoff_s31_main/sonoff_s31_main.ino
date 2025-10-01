@@ -170,10 +170,10 @@ void handleButton() {
       toggleRelay();
     } else if (pressDuration >= 3000 && pressDuration < PAIRING_BUTTON_HOLD_TIME) {
       // Long press (3-10s): reset WiFi settings (for future implementation)
-      Serial.println("Long press detected - WiFi reset requested");
+      logger.println("Long press detected - WiFi reset requested");
     } else if (pressDuration >= PAIRING_BUTTON_HOLD_TIME) {
       // Very long press (10+ seconds): enter pairing mode
-      Serial.println("Pairing mode button press detected");
+      logger.println("Pairing mode button press detected");
       enterPairingMode();
     }
   }
@@ -182,7 +182,7 @@ void handleButton() {
   if (currentButtonState && buttonPressed && !deviceState.pairingMode) {
     unsigned long holdDuration = millis() - buttonPressTime;
     if (holdDuration >= PAIRING_BUTTON_HOLD_TIME) {
-      Serial.println("Entering pairing mode...");
+      logger.println("Entering pairing mode...");
       enterPairingMode();
     }
   }
@@ -191,7 +191,7 @@ void handleButton() {
 void toggleRelay() {
   deviceState.relayState = !deviceState.relayState;
   digitalWrite(RELAY_PIN, deviceState.relayState ? HIGH : LOW);
-  Serial.printf("Relay %s\n", deviceState.relayState ? "ON" : "OFF");
+  logger.printf("Relay %s\n", deviceState.relayState ? "ON" : "OFF");
   
   // Broadcast state change via ESP-NOW
   broadcastDeviceState();
@@ -210,7 +210,7 @@ void updateSensorReadings() {
       // Debug output every 10 seconds
       static unsigned long lastDebug = 0;
       if (millis() - lastDebug > 10000) {
-        Serial.printf("Power: %.2fW, Voltage: %.1fV, Current: %.3fA, Energy: %.2fWh\n",
+        logger.printf("Power: %.2fW, Voltage: %.1fV, Current: %.3fA, Energy: %.2fWh\n",
                      deviceState.power, deviceState.voltage, deviceState.current, deviceState.energy);
         lastDebug = millis();
       }

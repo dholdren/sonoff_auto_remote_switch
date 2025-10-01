@@ -5,6 +5,7 @@
 
 #include "config.h"
 #include "CSE7766.h"
+#include "Logger.h"
 
 CSE7766::CSE7766(SoftwareSerial& serial) {
   _serial = &serial;
@@ -34,7 +35,7 @@ void CSE7766::begin() {
   _dataReady = false;
   
   #if DEBUG_SENSOR
-  Serial.println("CSE7766: Sensor initialized");
+  logger.println("CSE7766: Sensor initialized");
   #endif
 }
 
@@ -100,7 +101,7 @@ void CSE7766::processPacket() {
   #if DEBUG_SENSOR
   static unsigned long lastDebug = 0;
   if (millis() - lastDebug > 5000) {
-    Serial.printf("CSE7766: V=%.1fV, I=%.3fA, P=%.2fW (Raw: %lu, %lu, %lu)\n", 
+    logger.printf("CSE7766: V=%.1fV, I=%.3fA, P=%.2fW (Raw: %lu, %lu, %lu)\n", 
                   _voltage, _current, _power, _rawVoltage, _rawCurrent, _rawPower);
     lastDebug = millis();
   }
@@ -137,7 +138,7 @@ void CSE7766::setCalibration(float voltage, float current, float power) {
   _powerCoeff = power;
   
   #if DEBUG_SENSOR
-  Serial.printf("CSE7766: Calibration set - V:%.3f, I:%.3f, P:%.3f\n", 
+  logger.printf("CSE7766: Calibration set - V:%.3f, I:%.3f, P:%.3f\n", 
                 voltage, current, power);
   #endif
 }

@@ -200,7 +200,9 @@ void toggleRelay() {
 void updateSensorReadings() {
   static unsigned long lastReading = 0;
   if (millis() - lastReading > 1000) { // Update every second
+    logger.println("Checking sensor availability");
     if (cse7766.available()) {
+      logger.println("Sensor is available, getting data");
       deviceState.voltage = cse7766.getVoltage();
       deviceState.current = cse7766.getCurrent();
       deviceState.power = cse7766.getActivePower();

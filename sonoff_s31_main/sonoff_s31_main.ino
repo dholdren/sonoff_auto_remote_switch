@@ -50,9 +50,6 @@ void setup() {
   digitalWrite(RELAY_PIN, LOW);
   digitalWrite(LED_PIN, HIGH);  // LED off (inverted)
 
-  // Initialize WiFi
-  initWiFi();
-  
   // Initialize LittleFS for pairing data storage
   if (!LittleFS.begin()) {
     logger.println("Failed to mount LittleFS filesystem");
@@ -60,8 +57,8 @@ void setup() {
     logger.println("LittleFS filesystem mounted successfully");
   }
   
-  // Load WiFi configuration from flash
-  loadWiFiConfig();
+  // Initialize WiFi
+  initWiFi();
   
   // Load pairing data from flash
   loadPairingData();
@@ -130,6 +127,9 @@ void initWiFi() {
   logger.printf("Access Point started: %s\n", WiFi.softAPSSID().c_str());
 
   logger.printf("AP IP address: %s\n", WiFi.softAPIP().toString().c_str());
+  
+  // Load WiFi configuration from flash
+  loadWiFiConfig();
   
   // Connect to WiFi network if configured
   if (wifiConfig.isConfigured && strlen(wifiConfig.ssid) > 0) {

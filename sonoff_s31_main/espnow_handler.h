@@ -17,7 +17,9 @@ enum ESPNOWMessageType {
   MSG_DISCOVERY = 3,
   MSG_HEARTBEAT = 4,
   MSG_PAIRING = 5,
-  MSG_PAIRING_RESPONSE = 6
+  MSG_PAIRING_RESPONSE = 6,
+  MSG_CURRENT_HIGH = 7,
+  MSG_CURRENT_LOW = 8
 };
 
 // ESP-NOW message structure
@@ -64,8 +66,17 @@ uint32_t calculateChecksum(const PairingData* data);
 void clearPairingData();
 void printPairingStatus();
 
+// Current automation functions
+void sendCurrentAlert(bool isHigh);
+void handleCurrentAlert(uint8_t* senderMac, bool isHigh);
+
+// Relay control functions (defined in main .ino file)
+void turnOnRelay();
+void turnOffRelay();
+
 // Global variables
 extern ESPNOWPeer espnowPeers[MAX_ESPNOW_PEERS];
 extern int espnowPeerCount;
+extern CurrentAutomation currentAutomation;
 
 #endif // ESPNOW_HANDLER_H

@@ -34,6 +34,10 @@ bool buttonPressed = false;
 String UNIQUE_ID = String(ESP.getChipId(), HEX);
 String HOSTNAME = "sonoff-s31-" + UNIQUE_ID;
 
+// Current-based automation
+CurrentAutomation currentAutomation;
+bool childPendingTurnOff = false;       // Flag for pending child turn-off
+
 void setup() {
   // Initialize CSE7766 sensor
   cse7766.begin(); //will call Serial.begin()
@@ -65,6 +69,10 @@ void setup() {
   
   // Initialize ESP-NOW
   initESPNOW();
+  
+  // Initialize current automation variables
+  currentAutomation.lastCurrentState = false;
+  currentAutomation.childTurnOffTimer = 0;
   
   // Initialize web server
   initWebServer();
@@ -101,6 +109,13 @@ void loop() {
   
   // Handle ESP-NOW messages
   handleESPNOWMessages();
+  
+  // Handle current automation timer for children
+  if (currentAutomation.childTurnOffTimer > 0 && millis() >= currentAutomation.childTurnOffTimer) {
+    turnOffRelay();
+    currentAutomation.childTurnOffTimer = 0;
+    logger.println("Child: Turning OFF after 3-second delay");
+  }
   
   // Handle pairing mode
   handlePairingMode();
@@ -196,6 +211,24 @@ void toggleRelay() {
   broadcastDeviceState();
 }
 
+void turnOnRelay() {
+  if (!deviceState.relayState) {
+    deviceState.relayState = true;
+    digitalWrite(RELAY_PIN, HIGH);
+    logger.println("Relay ON");
+    broadcastDeviceState();
+  }
+}
+
+void turnOffRelay() {
+  if (deviceState.relayState) {
+    deviceState.relayState = false;
+    digitalWrite(RELAY_PIN, LOW);
+    logger.println("Relay OFF");
+    broadcastDeviceState();
+  }
+}
+
 void updateSensorReadings() {
   static unsigned long lastReading = 0;
   logger.withoutSerial([]() { //Skip logging to Serial
@@ -208,6 +241,19 @@ void updateSensorReadings() {
       deviceState.power = cse7766.getActivePower();
       deviceState.energy = cse7766.getEnergy();
       deviceState.lastUpdate = millis();
+      
+      // Current-based automation for parent devices
+      if (deviceState.isParent && deviceState.childCount > 0) {
+        bool currentIsHigh = (deviceState.current >= CURRENT_THRESHOLD);
+        
+        // Check for threshold crossing
+        if (currentIsHigh != currentAutomation.lastCurrentState) {
+          currentAutomation.lastCurrentState = currentIsHigh;
+          sendCurrentAlert(currentIsHigh);
+          logger.printf("Parent: Current threshold crossed - sending %s alert to children (%.3fA)\n",
+                       currentIsHigh ? "HIGH" : "LOW", deviceState.current);
+        }
+      }
       
       // Debug output every 10 seconds
       static unsigned long lastDebug = 0;

@@ -211,6 +211,14 @@ void onESPNOWDataReceived(uint8_t *mac, uint8_t *data, uint8_t len) {
       processPairingMessage(mac, msg->payload);
       break;
     }
+    
+    case MSG_CURRENT_HIGH:
+    case MSG_CURRENT_LOW: {
+      // Process current alert message
+      bool isHigh = (msg->type == MSG_CURRENT_HIGH);
+      handleCurrentAlert(mac, isHigh);
+      break;
+    }
   }
 }
 
@@ -643,4 +651,64 @@ void printPairingStatus() {
   
   logger.printf("Pairing Mode: %s\n", deviceState.pairingMode ? "ACTIVE" : "INACTIVE");
   logger.println("=====================\n");
+}
+
+void sendCurrentAlert(bool isHigh) {
+  if (!deviceState.isParent || deviceState.childCount == 0) {
+    return; // Only parents with children should send alerts
+  }
+  
+  ESPNOWMessage msg;
+  msg.type = isHigh ? MSG_CURRENT_HIGH : MSG_CURRENT_LOW;
+  msg.payload[0] = isHigh ? 1 : 0; // Simple payload indicating high/low
+  msg.payloadSize = 1;
+  
+  // Send alert to all children
+  for (int i = 0; i < deviceState.childCount; i++) {
+    esp_now_send(deviceState.childMacs[i], (uint8_t*)&msg, sizeof(ESPNOWMessage));
+    #if DEBUG_ESPNOW
+    logger.printf("ESP-NOW: Sent current %s alert to child %s\n", 
+                  isHigh ? "HIGH" : "LOW", 
+                  macToString(deviceState.childMacs[i]).c_str());
+    #endif
+  }
+}
+
+void handleCurrentAlert(uint8_t* senderMac, bool isHigh) {
+  // Only children should respond to current alerts
+  if (!deviceState.hasParent) {
+    return;
+  }
+  
+  // Verify the alert is from our parent
+  bool isFromParent = true;
+  for (int i = 0; i < 6; i++) {
+    if (senderMac[i] != deviceState.parentMac[i]) {
+      isFromParent = false;
+      break;
+    }
+  }
+  
+  if (!isFromParent) {
+    #if DEBUG_ESPNOW
+    logger.printf("ESP-NOW: Ignoring current alert from non-parent %s\n", 
+                  macToString(senderMac).c_str());
+    #endif
+    return;
+  }
+  
+  #if DEBUG_ESPNOW
+  logger.printf("ESP-NOW: Received current %s alert from parent\n", isHigh ? "HIGH" : "LOW");
+  #endif
+  
+  if (isHigh) {
+    // Turn on immediately when parent current goes high
+    turnOnRelay();
+    currentAutomation.childTurnOffTimer = 0; // Cancel any pending turn-off
+    logger.println("Child: Turning ON due to parent high current");
+  } else {
+    // Turn off after 3 seconds when parent current goes low
+    currentAutomation.childTurnOffTimer = millis() + CHILD_TURN_OFF_DELAY;
+    logger.println("Child: Scheduled turn OFF in 3 seconds due to parent low current");
+  }
 }

@@ -44,6 +44,12 @@ struct WiFiConfig {
   bool isConfigured = false;
 };
 
+// Current Automation Structure
+struct CurrentAutomation {
+  bool lastCurrentState = false;         // Last current threshold state (above/below 1A)
+  unsigned long childTurnOffTimer = 0;   // Timer for child turn-off delay
+};
+
 // Access Point Configuration (for initial setup)
 #define AP_SSID "SONOFF-S31-Setup"
 #define AP_PASSWORD "sonoff123"
@@ -58,6 +64,10 @@ struct WiFiConfig {
 #define PAIRING_BUTTON_HOLD_TIME 10000     // Button hold time to enter pairing mode
 #define PAIRING_LED_FAST_BLINK 100         // Fast blink interval for pairing mode
 #define PAIRING_LED_SLOW_BLINK 500         // Slow blink interval for parent mode
+
+// Current Automation Configuration
+#define CURRENT_THRESHOLD 1.0              // Current threshold in amps for parent automation
+#define CHILD_TURN_OFF_DELAY 3000          // Delay in milliseconds before child turns off
 
 // Flash Storage Configuration (LittleFS)
 #define PAIRING_FILE "/pairing.dat"        // File name for pairing data

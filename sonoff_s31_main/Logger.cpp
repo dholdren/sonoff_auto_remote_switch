@@ -9,10 +9,25 @@
 // Static member initialization
 WebSocketsServer* Logger::webSocket = nullptr;
 bool Logger::webSocketEnabled = false;
+bool Logger::serialEnabled = true;
 char Logger::buffer[512];
 
 // Global logger instance
 Logger logger;
+
+void Logger::disableSerial() {
+  serialEnabled = false;
+}
+void Logger::enableSerial() {
+  serialEnabled = true;
+}
+
+void Logger::withoutSerial(void (*f_ptr)()) {
+  bool oldSerialEnabled = serialEnabled;
+  serialEnabled = false;
+  f_ptr();
+  serialEnabled = oldSerialEnabled;
+}
 
 void Logger::begin(WebSocketsServer* ws) {
   webSocket = ws;
@@ -57,19 +72,17 @@ void Logger::enableWebSocket(bool enable) {
 }
 
 void Logger::sendMessage(const String& message, bool addNewline) {
-  // Always send to Serial
-  if (addNewline) {
-    Serial.println(message);
-  } else {
-    Serial.print(message);
+  if (serialEnabled && Serial) {
+    if (addNewline) {
+      Serial.println(message);
+    } else {
+      Serial.print(message);
+    }
   }
   
   // Send to WebSocket if available and enabled
   if (webSocketEnabled && webSocket != nullptr) {
     String wsMessage = message;
-    if (addNewline && !message.endsWith("\n")) {
-      wsMessage += "\n";
-    }
     
     // Remove trailing newlines for JSON
     while (wsMessage.endsWith("\n") || wsMessage.endsWith("\r")) {

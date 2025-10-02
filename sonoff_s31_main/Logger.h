@@ -14,11 +14,16 @@ class Logger {
 private:
   static WebSocketsServer* webSocket;
   static bool webSocketEnabled;
+  static bool serialEnabled;
   static char buffer[512]; // Buffer for formatted strings
-  
+
 public:
   // Initialize the logger with optional WebSocket server
   static void begin(WebSocketsServer* ws = nullptr);
+
+  static void disableSerial();
+  static void enableSerial();
+  static void withoutSerial(void (*f_ptr)());
   
   // Print functions
   static void println(const String& message);

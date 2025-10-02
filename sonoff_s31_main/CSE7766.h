@@ -1,58 +1,102 @@
-/*
- * CSE7766 Power Monitoring Sensor Library
- * For SONOFF S31 ESP8266 Project
- */
+// -----------------------------------------------------------------------------
+// CSE7766 based power monitor
+// Copyright (C) 2018 by Xose Pérez <xose dot perez at gmail dot com>
+// http://www.chipsea.com/UploadFiles/2017/08/11144342F01B5662.pdf
+// Taken directly from https://github.com/ingeniuske/CSE7766 with minimal modifications
+// -----------------------------------------------------------------------------
 
-#ifndef CSE7766_H
-#define CSE7766_H
+// -----------------------------------------------------------------------------
+// Usage example:
+//   CSE7766 cse7766;
+//   cse7766.begin();
+//   cse7766.handle();
+//   double voltage = cse7766.getVoltage();
+//   double current = cse7766.getCurrent();
+//   double power = cse7766.getActivePower();
+//   double energy = cse7766.getEnergy(); // in Wh (cumulative)
+//   cse7766.resetEnergy(); // reset energy counter
+// -----------------------------------------------------------------------------
+#ifndef CSE7766_h
+#define CSE7766_h
 
-#include <SoftwareSerial.h>
+#include "Arduino.h"
+#include "debug.h"
+
+#define CSE7766_SYNC_INTERVAL           300     // Safe time between transmissions (ms)
+#define CSE7766_BAUDRATE                4800    // UART baudrate
+
+#define CSE7766_V1R                     1.0     // 1mR current resistor
+#define CSE7766_V2R                     1.0     // 1M voltage resistor
+
+#define SENSOR_ERROR_OK             0       // No error
+#define SENSOR_ERROR_OUT_OF_RANGE   1       // Result out of sensor range
+#define SENSOR_ERROR_WARM_UP        2       // Sensor is warming-up
+#define SENSOR_ERROR_TIMEOUT        3       // Response from sensor timed out
+#define SENSOR_ERROR_UNKNOWN_ID     4       // Sensor did not report a known ID
+#define SENSOR_ERROR_CRC            5       // Sensor data corrupted
+#define SENSOR_ERROR_I2C            6       // Wrong or locked I2C address
+#define SENSOR_ERROR_GPIO_USED      7       // The GPIO is already in use
+#define SENSOR_ERROR_CALIBRATION    8       // Calibration error or Not calibrated
+#define SENSOR_ERROR_OTHER          99      // Any other error
 
 class CSE7766 {
-private:
-  SoftwareSerial* _serial;
-  uint8_t _buffer[24];
-  uint8_t _bufferIndex;
-  
-  // Calibration coefficients
-  float _voltageCoeff;
-  float _currentCoeff;
-  float _powerCoeff;
-  
-  // Raw values
-  uint32_t _rawVoltage;
-  uint32_t _rawCurrent;
-  uint32_t _rawPower;
-  
-  // Calculated values
-  float _voltage;
-  float _current;
-  float _power;
-  float _energy;
-  
-  bool _dataReady;
-  unsigned long _lastUpdate;
-  
-  bool validateChecksum(uint8_t* data, uint8_t length);
-  void processPacket();
-  
-public:
-  CSE7766(SoftwareSerial& serial);
-  
-  void begin();
-  bool available();
-  void update();
-  
-  float getVoltage();
-  float getCurrent();
-  float getActivePower();
-  float getEnergy();
-  
-  void resetEnergy();
-  void setCalibration(float voltage, float current, float power);
-  
-  bool isDataValid();
-  unsigned long getLastUpdate();
-};
 
-#endif // CSE7766_H
+public:
+
+// ---------------------------------------------------------------------
+// Public
+// ---------------------------------------------------------------------
+
+  CSE7766();
+  virtual ~CSE7766();
+  void setInverted(bool inverted);
+  bool getInverted();
+  void expectedCurrent(double expected);
+  void expectedVoltage(unsigned int expected);
+  void expectedPower(unsigned int expected);
+  void setCurrentRatio(double value);
+  void setVoltageRatio(double value);
+  void setPowerRatio(double value);
+  double getCurrentRatio();
+  double getVoltageRatio();
+  double getPowerRatio();
+  void resetRatios();
+  void resetEnergy(double value = 0);
+  double getCurrent(); //_current
+  double getVoltage(); //_voltage
+  double getActivePower(); //_active
+  double getApparentPower(); // _voltage * _current;
+  double getReactivePower();
+  double getPowerFactor(); //((_voltage > 0) && (_current > 0)) ? 100 * _active / _voltage / _current : 100;
+  double getEnergy(); //_energy
+
+  void begin();
+  void handle();
+
+private:
+
+// ---------------------------------------------------------------------
+// private
+// ---------------------------------------------------------------------
+
+  int _error = 0;
+  bool _dirty = true;
+  bool _ready = false;
+  
+  double _active = 0;
+  double _voltage = 0;
+  double _current = 0;
+  double _energy = 0;
+
+  double _ratioV = 1.0;
+  double _ratioC = 1.0;
+  double _ratioP = 1.0;
+
+  unsigned char _data[24];
+  
+bool _checksum();
+void _process();
+void _read();
+
+};
+#endif

@@ -36,8 +36,6 @@ struct DeviceState {
 #define RELAY_PIN 12
 #define LED_PIN 13
 #define BUTTON_PIN 0
-#define CSE7766_RX_PIN 6  // GPIO1 (TX) - CSE7766 TX connects here
-#define CSE7766_TX_PIN 8  // GPIO3 (RX) - Not used but defined
 
 // WiFi Configuration
 #define WIFI_SSID "HOLDREN24G"        // Replace with your WiFi network name
@@ -78,25 +76,14 @@ struct PairingData {
 // Web Server Configuration
 #define WEB_SERVER_PORT 80
 #define WEBSOCKET_PORT 81                  // WebSocket port for debug logging
-#define WEB_UPDATE_INTERVAL 2000           // Web dashboard update interval in milliseconds
 
 // OTA Update Configuration
 #define OTA_PASSWORD "sonoff123"            // OTA update password
 #define OTA_PORT 8266                       // OTA update port
 
-// CSE7766 Configuration
-#define CSE7766_VOLTAGE_RATIO 1.0          // Voltage calibration ratio
-#define CSE7766_CURRENT_RATIO 1.0          // Current calibration ratio
-#define CSE7766_POWER_RATIO 1.0            // Power calibration ratio
-
 // Device Configuration
 #define DEVICE_NAME "SONOFF S31 Smart Plug"
 #define FIRMWARE_VERSION "1.0.0"
-
-// Safety Configuration
-#define MAX_POWER_WATTS 3500               // Maximum power limit in watts
-#define MAX_CURRENT_AMPS 16                // Maximum current limit in amps
-#define OVERHEAT_TEMP_C 80                 // Overheat protection temperature
 
 // Debug Configuration
 #define DEBUG_SERIAL 1                     // Enable serial debug output

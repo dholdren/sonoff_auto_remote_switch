@@ -74,13 +74,6 @@ ArduinoJson by Benoit Blanchon
 #define MAX_ESPNOW_PEERS 10
 ```
 
-### CSE7766 Calibration
-```cpp
-#define CSE7766_VOLTAGE_RATIO 1.0
-#define CSE7766_CURRENT_RATIO 1.0
-#define CSE7766_POWER_RATIO 1.0
-```
-
 ## Web Dashboard
 
 Access the web dashboard at:

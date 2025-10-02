@@ -14,7 +14,6 @@
 #include <ESP8266mDNS.h>
 #include <ArduinoJson.h>
 #include <espnow.h>
-#include <SoftwareSerial.h>
 #include <ArduinoOTA.h>
 #include <LittleFS.h>
 #include "CSE7766.h"
@@ -24,8 +23,7 @@
 
 // Global objects
 ESP8266WebServer server(80);
-SoftwareSerial cseSerial(CSE7766_RX_PIN, CSE7766_TX_PIN);
-CSE7766 cse7766(cseSerial);
+CSE7766 cse7766; //Uses Serial, the sensor is connected to Serial RX
 
 // Device state
 DeviceState deviceState;
@@ -37,8 +35,8 @@ String UNIQUE_ID = String(ESP.getChipId(), HEX);
 String HOSTNAME = "sonoff-s31-" + UNIQUE_ID;
 
 void setup() {
-  Serial.begin(115200);
-  logger.println("\n--- SONOFF S31 ESP8266 Starting ---");
+  // Initialize CSE7766 sensor
+  cse7766.begin(); //will call Serial.begin()
   
   // Initialize device ID
   deviceState.deviceId = "SONOFF_S31_" + UNIQUE_ID;
@@ -50,12 +48,8 @@ void setup() {
   
   // Initial state
   digitalWrite(RELAY_PIN, LOW);
-  digitalWrite(LED_PIN, HIGH); // LED off (inverted)
-  
-  // Initialize CSE7766 sensor
-  cseSerial.begin(4800,SWSERIAL_8E1);
-  Serial.println("CSE7766 sensor initialized");
-  
+  digitalWrite(LED_PIN, HIGH);  // LED off (inverted)
+
   // Initialize WiFi
   initWiFi();
   
@@ -199,14 +193,15 @@ void toggleRelay() {
 
 void updateSensorReadings() {
   static unsigned long lastReading = 0;
-  if (millis() - lastReading > 1000) { // Update every second
-    logger.println("Checking sensor availability");
-    if (cse7766.available()) {
-      logger.println("Sensor is available, getting data");
+  logger.withoutSerial([]() { //Skip logging to Serial
+    if (millis() - lastReading > 1000) {  // Update every second
+      logger.println("Calling sensor handle()");
+      cse7766.handle();
+    
       deviceState.voltage = cse7766.getVoltage();
       deviceState.current = cse7766.getCurrent();
       deviceState.power = cse7766.getActivePower();
-      deviceState.energy += deviceState.power / 3600.0; // Convert to Wh
+      deviceState.energy = cse7766.getEnergy();
       deviceState.lastUpdate = millis();
       
       // Debug output every 10 seconds
@@ -216,9 +211,10 @@ void updateSensorReadings() {
                      deviceState.power, deviceState.voltage, deviceState.current, deviceState.energy);
         lastDebug = millis();
       }
+      
+      lastReading = millis();
     }
-    lastReading = millis();
-  }
+  }); //end lambda wrapper
 }
 
 void updateLEDStatus() {

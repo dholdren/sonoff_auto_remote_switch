@@ -215,7 +215,7 @@ void onESPNOWDataReceived(uint8_t *mac, uint8_t *data, uint8_t len) {
     case MSG_CURRENT_HIGH:
     case MSG_CURRENT_LOW: {
       // Process current alert message
-      bool isHigh = (msg->type == MSG_CURRENT_HIGH);
+      bool isHigh = (msg->messageType == MSG_CURRENT_HIGH);
       handleCurrentAlert(mac, isHigh);
       break;
     }
@@ -659,10 +659,9 @@ void sendCurrentAlert(bool isHigh) {
   }
   
   ESPNOWMessage msg;
-  msg.type = isHigh ? MSG_CURRENT_HIGH : MSG_CURRENT_LOW;
-  msg.payload[0] = isHigh ? 1 : 0; // Simple payload indicating high/low
-  msg.payloadSize = 1;
-  
+  msg.messageType = isHigh ? MSG_CURRENT_HIGH : MSG_CURRENT_LOW;
+  msg.payload[0] = isHigh ? 1 : 0;  // Simple payload indicating high/lowq
+
   // Send alert to all children
   for (int i = 0; i < deviceState.childCount; i++) {
     esp_now_send(deviceState.childMacs[i], (uint8_t*)&msg, sizeof(ESPNOWMessage));

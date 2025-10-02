@@ -37,9 +37,12 @@ struct DeviceState {
 #define LED_PIN 13
 #define BUTTON_PIN 0
 
-// WiFi Configuration
-#define WIFI_SSID "HOLDREN24G"        // Replace with your WiFi network name
-#define WIFI_PASSWORD "9734607838"   // Replace with your WiFi password
+// WiFi Configuration Structure
+struct WiFiConfig {
+  char ssid[32];
+  char password[64];
+  bool isConfigured = false;
+};
 
 // Access Point Configuration (for initial setup)
 #define AP_SSID "SONOFF-S31-Setup"
@@ -58,6 +61,7 @@ struct DeviceState {
 
 // Flash Storage Configuration (LittleFS)
 #define PAIRING_FILE "/pairing.dat"        // File name for pairing data
+#define WIFI_CONFIG_FILE "/wifi.dat"       // File name for WiFi configuration
 #define FLASH_MAGIC 0xA5B4                 // Magic number to verify valid data
 #define FLASH_VERSION 1
 

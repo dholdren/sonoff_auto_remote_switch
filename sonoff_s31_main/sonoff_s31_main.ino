@@ -60,6 +60,9 @@ void setup() {
     logger.println("LittleFS filesystem mounted successfully");
   }
   
+  // Load WiFi configuration from flash
+  loadWiFiConfig();
+  
   // Load pairing data from flash
   loadPairingData();
   
@@ -124,28 +127,30 @@ void initWiFi() {
   // Start Access Point
   String UNIQUE_AP_SSID = String(AP_SSID) + String("-") + UNIQUE_ID;
   WiFi.softAP(UNIQUE_AP_SSID, AP_PASSWORD);
-  Serial.printf("Access Point started: %s\n", WiFi.softAPSSID().c_str());
+  logger.printf("Access Point started: %s\n", WiFi.softAPSSID().c_str());
 
-  Serial.printf("AP IP address: %s\n", WiFi.softAPIP().toString().c_str());
+  logger.printf("AP IP address: %s\n", WiFi.softAPIP().toString().c_str());
   
-  // Connect to WiFi network
-  if (strlen(WIFI_SSID) > 0) {
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-    Serial.printf("Connecting to WiFi: %s", WIFI_SSID);
+  // Connect to WiFi network if configured
+  if (wifiConfig.isConfigured && strlen(wifiConfig.ssid) > 0) {
+    WiFi.begin(wifiConfig.ssid, wifiConfig.password);
+    logger.printf("Connecting to WiFi: %s", wifiConfig.ssid);
     
     int attempts = 0;
     while (WiFi.status() != WL_CONNECTED && attempts < 20) {
       delay(500);
-      Serial.print(".");
+      logger.print(".");
       attempts++;
     }
     
     if (WiFi.status() == WL_CONNECTED) {
       deviceState.wifiConnected = true;
-      Serial.printf("\nWiFi connected! IP: %s\n", WiFi.localIP().toString().c_str());
+      logger.printf("\nWiFi connected! IP: %s\n", WiFi.localIP().toString().c_str());
     } else {
-      Serial.println("\nWiFi connection failed, continuing with AP mode only");
+      logger.println("\nWiFi connection failed, continuing with AP mode only");
     }
+  } else {
+    logger.println("No WiFi configuration found, continuing with AP mode only");
   }
 }
 

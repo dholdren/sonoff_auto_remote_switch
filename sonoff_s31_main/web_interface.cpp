@@ -8,6 +8,7 @@
 #include "espnow_handler.h"
 #include "Logger.h"
 #include <WebSocketsServer.h>
+#include <LittleFS.h>
 
 extern ESP8266WebServer server;
 extern struct DeviceState deviceState;
@@ -15,6 +16,9 @@ extern const char* HOSTNAME;
 
 // WebSocket server for debug logging
 WebSocketsServer webSocket = WebSocketsServer(WEBSOCKET_PORT);
+
+// Global WiFi configuration
+WiFiConfig wifiConfig;
 
 // WebSocket event handler
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
@@ -59,6 +63,8 @@ void initWebServer() {
   server.on("/api/peers", HTTP_GET, handleGetPeers);
   server.on("/api/command", HTTP_POST, handleSendCommand);
   server.on("/api/pairing", HTTP_POST, handlePairing);
+  server.on("/api/wifi", HTTP_GET, handleWiFiConfig);
+  server.on("/api/wifi", HTTP_POST, handleSetWiFiConfig);
   
   server.onNotFound(handleNotFound);
   
@@ -293,6 +299,7 @@ let debugSocket;
 document.addEventListener('DOMContentLoaded', function() {
   updateStatus();
   updatePeers();
+  updateWiFiStatus();
   initDebugSocket();
   
   // Update status every 2 seconds
@@ -300,6 +307,9 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Update peers every 5 seconds
   peersUpdateInterval = setInterval(updatePeers, 5000);
+  
+  // Update WiFi status every 10 seconds
+  setInterval(updateWiFiStatus, 10000);
   
   // Add relay button event listener
   document.getElementById('relayButton').addEventListener('click', toggleRelay);
@@ -561,6 +571,64 @@ async function clearPairingData() {
     }
   }
 }
+
+async function updateWiFiStatus() {
+  try {
+    const response = await fetch('/api/wifi');
+    const data = await response.json();
+    
+    document.getElementById('currentSSID').textContent = data.configured ? data.ssid : 'Not configured';
+    document.getElementById('wifiStatus').innerHTML = data.connected ? 
+      '<span class="status-indicator online"></span>Connected' : 
+      '<span class="status-indicator offline"></span>Disconnected';
+  } catch (error) {
+    console.error('Error fetching WiFi status:', error);
+  }
+}
+
+async function updateWiFiConfig() {
+  const ssid = document.getElementById('newSSID').value.trim();
+  const password = document.getElementById('newPassword').value;
+  
+  if (!ssid) {
+    alert('Please enter a WiFi network name (SSID)');
+    return;
+  }
+  
+  if (ssid.length > 31) {
+    alert('WiFi network name too long (max 31 characters)');
+    return;
+  }
+  
+  if (password.length > 63) {
+    alert('WiFi password too long (max 63 characters)');
+    return;
+  }
+  
+  try {
+    const response = await fetch('/api/wifi', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ ssid: ssid, password: password })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      alert(result.message);
+      document.getElementById('newSSID').value = '';
+      document.getElementById('newPassword').value = '';
+      updateWiFiStatus();
+    } else {
+      alert('Error: ' + result.message);
+    }
+  } catch (error) {
+    console.error('Error updating WiFi config:', error);
+    alert('Error updating WiFi configuration. Please try again.');
+  }
+}
 )JSDATA";
   
   server.send(200, "application/javascript", js);
@@ -704,7 +772,7 @@ String getPeersJSON() {
 }
 
 String generateWebPage() {
-  return R"HTMLDATA(
+  String html = R"HTMLDATA(
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -797,6 +865,36 @@ String generateWebPage() {
                 </div>
             </div>
             
+            <!-- WiFi Configuration Card -->
+            <div class="card">
+                <h3>WiFi Configuration</h3>
+                <div class="status-grid">
+                    <div class="status-item">
+                        <span class="label">Current SSID:</span>
+                        <span id="currentSSID">Loading...</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Status:</span>
+                        <span id="wifiStatus">Loading...</span>
+                    </div>
+                </div>
+                <div style="margin-top: 20px;">
+                    <div style="margin-bottom: 15px;">
+                        <label for="newSSID" style="display: block; margin-bottom: 5px; font-weight: bold;">New SSID:</label>
+                        <input type="text" id="newSSID" placeholder="Enter WiFi network name" 
+                               style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label for="newPassword" style="display: block; margin-bottom: 5px; font-weight: bold;">Password:</label>
+                        <input type="password" id="newPassword" placeholder="Enter WiFi password" 
+                               style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                    </div>
+                    <button onclick="updateWiFiConfig()" class="relay-button" style="background: linear-gradient(45deg, #2196F3, #1976D2);">
+                        Update WiFi Configuration
+                    </button>
+                </div>
+            </div>
+            
             <!-- ESP-NOW Peers Card -->
             <div class="card">
                 <h3>ESP-NOW Network</h3>
@@ -807,8 +905,124 @@ String generateWebPage() {
         </div>
     </div>
     
-    <script src="/script.js"></script>
+        <script src="/script.js"></script>
 </body>
 </html>
   )HTMLDATA";
+  
+  return html;
+}
+
+// ===== WIFI CONFIGURATION FUNCTIONS =====
+
+void loadWiFiConfig() {
+  // Check if WiFi config file exists
+  if (!LittleFS.exists(WIFI_CONFIG_FILE)) {
+    logger.println("No WiFi config file found - using defaults");
+    wifiConfig.isConfigured = false;
+    strcpy(wifiConfig.ssid, "");
+    strcpy(wifiConfig.password, "");
+    return;
+  }
+  
+  // Read from LittleFS
+  File file = LittleFS.open(WIFI_CONFIG_FILE, "r");
+  if (!file) {
+    logger.println("Failed to open WiFi config file for reading");
+    wifiConfig.isConfigured = false;
+    return;
+  }
+  
+  if (file.size() != sizeof(WiFiConfig)) {
+    logger.println("WiFi config file size mismatch");
+    file.close();
+    wifiConfig.isConfigured = false;
+    return;
+  }
+  
+  file.read((uint8_t*)&wifiConfig, sizeof(WiFiConfig));
+  file.close();
+  
+  logger.printf("WiFi config loaded: SSID='%s'\n", wifiConfig.ssid);
+}
+
+void saveWiFiConfig() {
+  // Write to LittleFS
+  File file = LittleFS.open(WIFI_CONFIG_FILE, "w");
+  if (file) {
+    file.write((uint8_t*)&wifiConfig, sizeof(WiFiConfig));
+    file.close();
+    logger.printf("WiFi config saved: SSID='%s'\n", wifiConfig.ssid);
+  } else {
+    logger.println("Failed to open WiFi config file for writing");
+  }
+}
+
+void clearWiFiConfig() {
+  // Remove WiFi config file from flash storage
+  if (LittleFS.exists(WIFI_CONFIG_FILE)) {
+    LittleFS.remove(WIFI_CONFIG_FILE);
+    logger.println("WiFi config file removed from flash storage");
+  }
+  
+  wifiConfig.isConfigured = false;
+  strcpy(wifiConfig.ssid, "");
+  strcpy(wifiConfig.password, "");
+  logger.println("WiFi configuration cleared");
+}
+
+void handleWiFiConfig() {
+  DynamicJsonDocument doc(200);
+  doc["ssid"] = wifiConfig.ssid;
+  doc["configured"] = wifiConfig.isConfigured;
+  doc["connected"] = deviceState.wifiConnected;
+  
+  String response;
+  serializeJson(doc, response);
+  server.send(200, "application/json", response);
+}
+
+void handleSetWiFiConfig() {
+  if (server.hasArg("plain")) {
+    DynamicJsonDocument doc(200);
+    deserializeJson(doc, server.arg("plain"));
+    
+    String newSSID = doc["ssid"];
+    String newPassword = doc["password"];
+    
+    if (newSSID.length() > 0 && newSSID.length() < 32 && 
+        newPassword.length() >= 0 && newPassword.length() < 64) {
+      
+      // Update WiFi configuration
+      strcpy(wifiConfig.ssid, newSSID.c_str());
+      strcpy(wifiConfig.password, newPassword.c_str());
+      wifiConfig.isConfigured = true;
+      
+      // Save to flash
+      saveWiFiConfig();
+      
+      logger.printf("WiFi config updated: SSID='%s'\n", wifiConfig.ssid);
+      
+      // Respond with success
+      DynamicJsonDocument response(200);
+      response["success"] = true;
+      response["message"] = "WiFi configuration saved. Restart device to apply changes.";
+      
+      String responseStr;
+      serializeJson(response, responseStr);
+      server.send(200, "application/json", responseStr);
+      
+    } else {
+      // Invalid parameters
+      DynamicJsonDocument response(200);
+      response["success"] = false;
+      response["message"] = "Invalid SSID or password length";
+      
+      String responseStr;
+      serializeJson(response, responseStr);
+      server.send(400, "application/json", responseStr);
+    }
+  } else {
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"No data received\"}");
+  }
 }

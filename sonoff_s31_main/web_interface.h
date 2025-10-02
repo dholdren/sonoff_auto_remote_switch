@@ -21,6 +21,8 @@ void handleSetRelay();
 void handleGetPeers();
 void handleSendCommand();
 void handlePairing();
+void handleWiFiConfig();
+void handleSetWiFiConfig();
 void handleNotFound();
 void handleStyle();
 void handleScript();
@@ -30,7 +32,15 @@ String getStatusJSON();
 String getPeersJSON();
 String generateWebPage();
 
+// WiFi configuration functions
+void loadWiFiConfig();
+void saveWiFiConfig();
+void clearWiFiConfig();
+
 // WebSocket server reference
 extern WebSocketsServer webSocket;
+
+// Global WiFi configuration
+extern WiFiConfig wifiConfig;
 
 #endif // WEB_INTERFACE_H

@@ -18,6 +18,11 @@ void handleRoot();
 void handleAPI();
 void handleGetStatus();
 void handleSetRelay();
+
+// External relay control functions (defined in main .ino file)
+extern void turnOnRelay();
+extern void turnOffRelay();
+extern void toggleRelay();
 void handleGetPeers();
 void handleSendCommand();
 void handlePairing();

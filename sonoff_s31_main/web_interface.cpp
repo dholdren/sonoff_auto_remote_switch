@@ -650,18 +650,12 @@ void handleSetRelay() {
     String action = doc["action"];
     
     if (action == "on" || action == "1") {
-      deviceState.relayState = true;
-      digitalWrite(RELAY_PIN, HIGH);
+      turnOnRelay();
     } else if (action == "off" || action == "0") {
-      deviceState.relayState = false;
-      digitalWrite(RELAY_PIN, LOW);
+      turnOffRelay();
     } else if (action == "toggle") {
-      deviceState.relayState = !deviceState.relayState;
-      digitalWrite(RELAY_PIN, deviceState.relayState ? HIGH : LOW);
+      toggleRelay();
     }
-    
-    // Broadcast state change
-    broadcastDeviceState();
     
     server.send(200, "application/json", getStatusJSON());
   } else {

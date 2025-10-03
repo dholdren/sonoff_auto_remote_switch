@@ -38,6 +38,10 @@ String HOSTNAME = "sonoff-s31-" + UNIQUE_ID;
 CurrentAutomation currentAutomation;
 bool childPendingTurnOff = false;       // Flag for pending child turn-off
 
+// Function declarations
+void saveRelayState();
+void loadRelayState();
+
 void setup() {
   // Initialize CSE7766 sensor
   cse7766.begin(); //will call Serial.begin()
@@ -69,6 +73,9 @@ void setup() {
   
   // Initialize ESP-NOW
   initESPNOW();
+  
+  // Load saved relay state from flash (after ESP-NOW is initialized)
+  loadRelayState();
   
   // Initialize current automation variables
   currentAutomation.lastCurrentState = false;
@@ -207,6 +214,9 @@ void toggleRelay() {
   digitalWrite(RELAY_PIN, deviceState.relayState ? HIGH : LOW);
   logger.printf("Relay %s\n", deviceState.relayState ? "ON" : "OFF");
   
+  // Save state to flash
+  saveRelayState();
+  
   // Broadcast state change via ESP-NOW
   broadcastDeviceState();
 }
@@ -216,6 +226,7 @@ void turnOnRelay() {
     deviceState.relayState = true;
     digitalWrite(RELAY_PIN, HIGH);
     logger.println("Relay ON");
+    saveRelayState();
     broadcastDeviceState();
   }
 }
@@ -225,8 +236,60 @@ void turnOffRelay() {
     deviceState.relayState = false;
     digitalWrite(RELAY_PIN, LOW);
     logger.println("Relay OFF");
+    saveRelayState();
     broadcastDeviceState();
   }
+}
+
+void saveRelayState() {
+  if (!LittleFS.begin()) {
+    logger.println("Failed to mount LittleFS for relay state save");
+    return;
+  }
+  
+  File file = LittleFS.open(RELAY_STATE_FILE, "w");
+  if (!file) {
+    logger.println("Failed to open relay state file for writing");
+    return;
+  }
+  
+  // Write relay state as simple boolean (1 byte)
+  file.write(deviceState.relayState ? 1 : 0);
+  file.close();
+  
+  logger.printf("Relay state saved: %s\n", deviceState.relayState ? "ON" : "OFF");
+}
+
+void loadRelayState() {
+  if (!LittleFS.begin()) {
+    logger.println("Failed to mount LittleFS for relay state load");
+    return;
+  }
+  
+  if (!LittleFS.exists(RELAY_STATE_FILE)) {
+    logger.println("No saved relay state found, defaulting to OFF");
+    deviceState.relayState = false;
+    return;
+  }
+  
+  File file = LittleFS.open(RELAY_STATE_FILE, "r");
+  if (!file) {
+    logger.println("Failed to open relay state file for reading");
+    deviceState.relayState = false;
+    return;
+  }
+  
+  // Read relay state (1 byte)
+  uint8_t savedState = file.read();
+  file.close();
+  
+  deviceState.relayState = (savedState == 1);
+  digitalWrite(RELAY_PIN, deviceState.relayState ? HIGH : LOW);
+  
+  logger.printf("Relay state loaded: %s\n", deviceState.relayState ? "ON" : "OFF");
+  
+  // Broadcast the loaded state to other devices
+  broadcastDeviceState();
 }
 
 void updateSensorReadings() {

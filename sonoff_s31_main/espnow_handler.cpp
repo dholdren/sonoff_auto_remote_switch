@@ -171,18 +171,14 @@ void onESPNOWDataReceived(uint8_t *mac, uint8_t *data, uint8_t len) {
       
       if (command == "relay") {
         if (value == "on" || value == "1") {
-          deviceState.relayState = true;
-          digitalWrite(RELAY_PIN, HIGH);
+          turnOnRelay();
         } else if (value == "off" || value == "0") {
-          deviceState.relayState = false;
-          digitalWrite(RELAY_PIN, LOW);
+          turnOffRelay();
         } else if (value == "toggle") {
-          deviceState.relayState = !deviceState.relayState;
-          digitalWrite(RELAY_PIN, deviceState.relayState ? HIGH : LOW);
+          toggleRelay();
         }
         
         logger.printf("ESP-NOW: Relay command received: %s\n", value.c_str());
-        broadcastDeviceState(); // Broadcast updated state
       }
       break;
     }

@@ -72,6 +72,7 @@ struct CurrentAutomation {
 // Flash Storage Configuration (LittleFS)
 #define PAIRING_FILE "/pairing.dat"        // File name for pairing data
 #define WIFI_CONFIG_FILE "/wifi.dat"       // File name for WiFi configuration
+#define RELAY_STATE_FILE "/relay.dat"      // File name for relay state storage
 #define FLASH_MAGIC 0xA5B4                 // Magic number to verify valid data
 #define FLASH_VERSION 1
 

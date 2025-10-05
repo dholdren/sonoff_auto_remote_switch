@@ -73,6 +73,7 @@ void handleCurrentAlert(uint8_t* senderMac, bool isHigh);
 // Relay control functions (defined in main .ino file)
 void turnOnRelay();
 void turnOffRelay();
+void toggleRelay();
 
 // Global variables
 extern ESPNOWPeer espnowPeers[MAX_ESPNOW_PEERS];

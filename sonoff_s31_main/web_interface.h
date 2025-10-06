@@ -30,7 +30,12 @@ void handleWiFiConfig();
 void handleSetWiFiConfig();
 void handleNotFound();
 void handleStyle();
-void handleScript();
+void handleDebugSocketJS();
+void handleStatusJS();
+void handlePeersJS();
+void handleRelayJS();
+void handleWiFiJS();
+void handlePairingJS();
 
 // Utility functions
 String getStatusJSON();

@@ -55,7 +55,12 @@ void initWebServer() {
   // Web pages
   server.on("/", handleRoot);
   server.on("/style.css", handleStyle);
-  server.on("/script.js", handleScript);
+  server.on("/js/debugsocket.js", handleDebugSocketJS);
+  server.on("/js/status.js", handleStatusJS);
+  server.on("/js/peers.js", handlePeersJS);
+  server.on("/js/relay.js", handleRelayJS);
+  server.on("/js/wifi.js", handleWiFiJS);
+  server.on("/js/pairing.js", handlePairingJS);
   
   // API endpoints
   server.on("/api/status", HTTP_GET, handleGetStatus);
@@ -290,31 +295,11 @@ body {
   server.send(200, "text/css", css);
 }
 
-void handleScript() {
-  String js = R"JSDATA(
-let statusUpdateInterval;
-let peersUpdateInterval;
-let debugSocket;
-
+void handleDebugSocketJS() {
+  String js = R"DEBUGJSDATA(
 document.addEventListener('DOMContentLoaded', function() {
-  updateStatus();
-  updatePeers();
-  updateWiFiStatus();
   initDebugSocket();
-  
-  // Update status every 2 seconds
-  statusUpdateInterval = setInterval(updateStatus, 2000);
-  
-  // Update peers every 5 seconds
-  peersUpdateInterval = setInterval(updatePeers, 5000);
-  
-  // Update WiFi status every 10 seconds
-  setInterval(updateWiFiStatus, 10000);
-  
-  // Add relay button event listener
-  document.getElementById('relayButton').addEventListener('click', toggleRelay);
 });
-
 function initDebugSocket() {
   const wsPort = window.location.port === '80' || window.location.port === '' ? '81' : (parseInt(window.location.port) + 1);
   const wsUrl = 'ws://' + window.location.hostname + ':' + wsPort + '/';
@@ -345,6 +330,18 @@ function initDebugSocket() {
     console.error('WebSocket error:', error);
   };
 }
+)DEBUGJSDATA";
+  server.send(200, "application/javascript", js);
+}
+
+void handleStatusJS() {
+  String js = R"STATUSJSDATA(
+document.addEventListener('DOMContentLoaded', function() {
+  updateStatus();
+
+  // Update status every 2 seconds
+  setInterval(updateStatus, 2000);
+});
 
 async function updateStatus() {
   try {
@@ -425,6 +422,18 @@ async function updateStatus() {
     console.error('Error updating status:', error);
   }
 }
+)STATUSJSDATA";
+  server.send(200, "application/javascript", js);
+}
+
+void handlePeersJS() {
+  String js = R"PEERSJSDATA(
+document.addEventListener('DOMContentLoaded', function() {
+  updatePeers();
+  
+  // Update peers every 5 seconds
+  setInterval(updatePeers, 5000);
+});
 
 async function updatePeers() {
   try {
@@ -468,6 +477,42 @@ async function updatePeers() {
   }
 }
 
+async function sendCommand(mac, command, value) {
+  try {
+    const response = await fetch('/api/command', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        mac: mac,
+        command: command,
+        value: value
+      })
+    });
+    
+    if (response.ok) {
+      console.log(`Command sent to ${mac}: ${command}=${value}`);
+    } else {
+      throw new Error('Failed to send command');
+    }
+    
+  } catch (error) {
+    console.error('Error sending command:', error);
+    alert('Error sending command. Please try again.');
+  }
+}
+)PEERSJSDATA";
+  server.send(200, "application/javascript", js);
+}
+
+void handleRelayJS() {
+  String js = R"RELAYJSDATA(
+document.addEventListener('DOMContentLoaded', function() {
+  // Add relay button event listener
+  document.getElementById('relayButton').addEventListener('click', toggleRelay);
+});
+
 async function toggleRelay() {
   const button = document.getElementById('relayButton');
   const originalText = button.textContent;
@@ -499,78 +544,18 @@ async function toggleRelay() {
     alert('Error toggling relay. Please try again.');
   }
 }
-
-async function sendCommand(mac, command, value) {
-  try {
-    const response = await fetch('/api/command', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        mac: mac,
-        command: command,
-        value: value
-      })
-    });
-    
-    if (response.ok) {
-      console.log(`Command sent to ${mac}: ${command}=${value}`);
-    } else {
-      throw new Error('Failed to send command');
-    }
-    
-  } catch (error) {
-    console.error('Error sending command:', error);
-    alert('Error sending command. Please try again.');
-  }
+)RELAYJSDATA";
+  server.send(200, "application/javascript", js);
 }
 
-async function enterPairingMode() {
-  if (confirm('Enter pairing mode? Device will listen for parent/child devices.')) {
-    try {
-      const response = await fetch('/api/pairing', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ action: 'enter' })
-      });
-      
-      if (response.ok) {
-        alert('Pairing mode activated! LED will blink to indicate status.');
-      } else {
-        throw new Error('Failed to enter pairing mode');
-      }
-    } catch (error) {
-      console.error('Error entering pairing mode:', error);
-      alert('Error entering pairing mode. Please try again.');
-    }
-  }
-}
-
-async function clearPairingData() {
-  if (confirm('Clear all pairing data? This will remove parent/child relationships.')) {
-    try {
-      const response = await fetch('/api/pairing', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ action: 'clear' })
-      });
-      
-      if (response.ok) {
-        alert('Pairing data cleared successfully!');
-      } else {
-        throw new Error('Failed to clear pairing data');
-      }
-    } catch (error) {
-      console.error('Error clearing pairing data:', error);
-      alert('Error clearing pairing data. Please try again.');
-    }
-  }
-}
+void handleWiFiJS() {
+  String js = R"WIFISJSDATA(
+document.addEventListener('DOMContentLoaded', function() {
+  updateWiFiStatus();
+  
+  // Update WiFi status every 10 seconds
+  setInterval(updateWiFiStatus, 10000);
+});
 
 async function updateWiFiStatus() {
   try {
@@ -629,8 +614,58 @@ async function updateWiFiConfig() {
     alert('Error updating WiFi configuration. Please try again.');
   }
 }
-)JSDATA";
-  
+)WIFISJSDATA";
+  server.send(200, "application/javascript", js);
+}
+
+void handlePairingJS() {
+  String js = R"PAIRINGJSDATA(
+async function enterPairingMode() {
+  if (confirm('Enter pairing mode? Device will listen for parent/child devices.')) {
+    try {
+      const response = await fetch('/api/pairing', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'enter' })
+      });
+      
+      if (response.ok) {
+        alert('Pairing mode activated! LED will blink to indicate status.');
+      } else {
+        throw new Error('Failed to enter pairing mode');
+      }
+    } catch (error) {
+      console.error('Error entering pairing mode:', error);
+      alert('Error entering pairing mode. Please try again.');
+    }
+  }
+}
+
+async function clearPairingData() {
+  if (confirm('Clear all pairing data? This will remove parent/child relationships.')) {
+    try {
+      const response = await fetch('/api/pairing', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'clear' })
+      });
+      
+      if (response.ok) {
+        alert('Pairing data cleared successfully!');
+      } else {
+        throw new Error('Failed to clear pairing data');
+      }
+    } catch (error) {
+      console.error('Error clearing pairing data:', error);
+      alert('Error clearing pairing data. Please try again.');
+    }
+  }
+}
+)PAIRINGJSDATA";
   server.send(200, "application/javascript", js);
 }
 
@@ -899,7 +934,12 @@ String generateWebPage() {
         </div>
     </div>
     
-        <script src="/script.js"></script>
+        <script src="/js/debugsocket.js"></script>
+        <script src="/js/status.js"></script>
+        <script src="/js/peers.js"></script>
+        <script src="/js/relay.js"></script>
+        <script src="/js/wifi.js"></script>
+        <script src="/js/pairing.js"></script>
 </body>
 </html>
   )HTMLDATA";

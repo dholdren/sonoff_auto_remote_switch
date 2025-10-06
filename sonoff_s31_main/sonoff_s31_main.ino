@@ -98,6 +98,15 @@ void setup() {
 }
 
 void loop() {
+  // Log memory usage periodically
+  static unsigned long lastMemoryLog = 0;
+  if (millis() - lastMemoryLog > 10000) { // Every 10 seconds
+    uint32_t freeHeap = ESP.getFreeHeap();
+    uint8_t fragmentation = ESP.getHeapFragmentation();
+    logger.printf("Memory: Free=%u bytes, Fragmentation=%u%%\n", freeHeap, fragmentation);
+    lastMemoryLog = millis();
+  }
+  
   // Handle OTA updates
   ArduinoOTA.handle();
   

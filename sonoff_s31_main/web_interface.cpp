@@ -15,7 +15,9 @@ extern struct DeviceState deviceState;
 extern const char* HOSTNAME;
 
 // WebSocket server for debug logging
+#if WEBSOCKET_LOGGING_ENABLED
 WebSocketsServer webSocket = WebSocketsServer(WEBSOCKET_PORT);
+#endif
 
 // Global WiFi configuration
 WiFiConfig wifiConfig;
@@ -45,13 +47,14 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
 }
 
 void initWebServer() {
+#if WEBSOCKET_LOGGING_ENABLED
   // Initialize WebSocket server
   webSocket.begin();
   webSocket.onEvent(webSocketEvent);
   
   // Initialize Logger with WebSocket support
   logger.begin(&webSocket);
-  
+#endif
   // Web pages
   server.on("/", handleRoot);
   server.on("/style.css", handleStyle);
@@ -291,11 +294,15 @@ body {
   100% { transform: rotate(360deg); }
 }
 )CSSDATA";
-  
+
   server.send(200, "text/css", css);
 }
 
 void handleDebugSocketJS() {
+#if !WEBSOCKET_LOGGING_ENABLED
+  server.send(200, "application/javascript", "console.log(\"websocket logging disabled\")");
+  return;
+#else
   String js = R"DEBUGJSDATA(
 document.addEventListener('DOMContentLoaded', function() {
   initDebugSocket();
@@ -332,6 +339,7 @@ function initDebugSocket() {
 }
 )DEBUGJSDATA";
   server.send(200, "application/javascript", js);
+#endif
 }
 
 void handleStatusJS() {
@@ -670,7 +678,9 @@ async function clearPairingData() {
 }
 
 void handleWebSocket() {
+#if WEBSOCKET_LOGGING_ENABLED
   webSocket.loop();
+#endif
 }
 
 void handleGetStatus() {

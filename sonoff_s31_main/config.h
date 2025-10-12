@@ -90,7 +90,10 @@ struct PairingData {
 
 // Web Server Configuration
 #define WEB_SERVER_PORT 80
+
+// WebSocket Debug Logging
 #define WEBSOCKET_PORT 81                  // WebSocket port for debug logging
+#define WEBSOCKET_LOGGING_ENABLED 0        // Enable/Disable WebSocket logging
 
 // OTA Update Configuration
 #define OTA_PASSWORD "sonoff123"            // OTA update password
@@ -101,8 +104,8 @@ struct PairingData {
 #define FIRMWARE_VERSION "1.0.0"
 
 // Debug Configuration
-#define DEBUG_SERIAL 1                     // Enable serial debug output
-#define DEBUG_ESPNOW 1                     // Enable ESP-NOW debug output
-#define DEBUG_SENSOR 1                     // Enable sensor debug output
+#define DEBUG_SERIAL 1                     // Enable/Disable serial debug output
+#define DEBUG_ESPNOW 1                     // Enable/Disable ESP-NOW debug output
+#define DEBUG_SENSOR 1                     // Enable/Disable sensor debug output
 
 #endif // CONFIG_H

@@ -27,7 +27,6 @@
    3V3  - 3.3V Power
    RX   - Connect to TX of USB-Serial adapter
    TX   - Connect to RX of USB-Serial adapter
-   GPIO0- Programming mode (pull to GND during boot)
    GND  - Ground
    ```
 
@@ -38,18 +37,16 @@
    GND      ->   GND
    RX       ->   TX
    TX       ->   RX
-   GPIO0    ->   GND (during programming only)
    ```
 
 ### Option 2: Permanent Programming Header (Advanced)
 
 1. **Install Pin Headers**:
-   - Solder a 5-pin header to the programming pads
+   - Solder a 4-pin header to the programming pads
    - This allows easy future programming
 
 2. **Create Programming Cable**:
    - Make a custom cable with the pinout above
-   - Include a switch for GPIO0 control
 
 ## Programming Steps
 
@@ -66,7 +63,9 @@
 
 2. **Install Required Libraries**:
    - Sketch → Include Library → Manage Libraries
-   - Install: `ArduinoJson` by Benoit Blanchon
+   - Install: 
+     - `ArduinoJson` by Benoit Blanchon
+     - `Websockets` by Markus Sattler
 
 ### 2. Configure Board Settings
 
@@ -86,17 +85,16 @@ Flash Frequency: "40MHz"
 Upload Speed: "115200"
 ```
 
-### 3. Programming Process
+### 3. Programming Process - initial
 
 1. **Connect Hardware**:
-   - Connect USB-Serial adapter to computer
    - Wire SONOFF S31 as described above
-   - Hold GPIO0 to GND
+   - Hold Power button on SONOFF device
 
 2. **Power On**:
-   - Connect 3.3V power
+   - Connect USB-Serial adapter to computer
    - ESP8266 should be in programming mode
-   - Release GPIO0 after 2 seconds
+   - Release Power button on SONOFF device
 
 3. **Upload Code**:
    - Select correct COM port
@@ -118,8 +116,12 @@ Upload Speed: "115200"
 
 2. **Web Configuration**:
    - Open browser to: `http://192.168.4.1`
-   - Configure WiFi credentials
-   - Set device name and preferences
+   - Configure WiFi credentials via Dashboard
+   - Note device name
+
+3. **Post Configuration Operation**:
+   - device will be available on your local network at https://sonoff-s31-<unique ID>.local
+   - device can now be flashed via Arduino OTA in the IDE
 
 ## Troubleshooting
 
@@ -127,7 +129,7 @@ Upload Speed: "115200"
 
 1. **Upload Failed**:
    - Check wiring connections
-   - Ensure GPIO0 is grounded during boot
+   - Ensure Power button is pressed during boot
    - Try lower upload speed (57600)
    - Check power supply (stable 3.3V)
 
@@ -136,14 +138,7 @@ Upload Speed: "115200"
    - Verify baud rate (115200)
    - Check ground connection
 
-3. **WiFi Not Working**:
-   - Verify ESP8266 is getting stable power
-   - Check antenna connection
-   - Try different WiFi network
-
-4. **CSE7766 No Data**:
-   - Check if GPIO1/3 are connected properly
-   - Verify CSE7766 chip is powered
+3. **CSE7766 No Data**:
    - Check baud rate (4800 for CSE7766)
 
 ### Debug Steps
@@ -155,15 +150,6 @@ Upload Speed: "115200"
    #define DEBUG_SENSOR 1
    ```
 
-2. **Check Memory Usage**:
-   - Sketch → Verify/Compile
-   - Check memory usage in output
-   - Should be under 80% program storage
-
-3. **Test Individual Components**:
-   - Use example sketches in `/examples/`
-   - Test CSE7766 separately
-   - Test ESP-NOW separately
 
 ## Safety Warnings
 
@@ -172,7 +158,6 @@ Upload Speed: "115200"
 - **NEVER** work on the device while connected to mains power
 - **ALWAYS** disconnect power before opening the case
 - **VERIFY** power is off with a multimeter
-- **USE** proper safety equipment (safety glasses, etc.)
 - **ONLY** work on the device if you have electrical experience
 
 ### Programming Safety
@@ -198,20 +183,9 @@ If you need to restore the original SONOFF firmware:
 
 ## Advanced Programming
 
-### OTA Updates (Future Feature)
+### OTA Updates
 
 Once the initial firmware is installed:
 - Use Arduino IDE OTA programming
 - Upload over WiFi network
 - No need to open case again
-
-### Batch Programming
-
-For multiple devices:
-1. Create programming jig
-2. Use command-line tools
-3. Automate with scripts
-
----
-
-**Remember**: Always prioritize safety when working with mains-powered devices. If you're not comfortable with electrical work, consider having a professional install the firmware.

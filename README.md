@@ -1,6 +1,13 @@
 # SONOFF S31 ESP-NOW Auto Remote Switch
 
-A decentralized Arduino project that networks 2 or more SONOFF S31 smart plugs using ESP-NOW communication for automatic synchronized control. When the primary unit turns on/off, all secondary units follow suit automatically - **no coordinator or hub required**.
+## Disclaimer
+This project was created with the assistance of Github Copilot in VS Code, using the `Claude Sonnet 4` model.
+## 
+
+A decentralized Arduino project that networks 2 or more SONOFF S31 smart plugs using ESP-NOW communication for automatic synchronized control. **no coordinator or hub required**.
+When a load connected to the primary unit turns on/off, all secondary units follow suit automatically.
+
+**TODO** Make this multi-sensor, multi-switched to support more use-cases.
 
 ## Core Concept
 
@@ -12,6 +19,7 @@ This project transforms multiple SONOFF S31 devices into a **parent-child networ
 
 ## Key Features
 
+- **Physical Pairing**: Pair devices without using the web-interface via button sequence
 - **Automatic Synchronization**: Child devices instantly follow parent relay state changes
 - **Current-Based Automation**: Parent detects 1+ amp load and triggers child devices after 3 seconds
 - **ESP-NOW Mesh Network**: Direct device communication without WiFi infrastructure dependency  
@@ -20,11 +28,24 @@ This project transforms multiple SONOFF S31 devices into a **parent-child networ
 - **Persistent Configuration**: Device relationships and settings stored in flash memory
 - **Visual Status Indicators**: LED feedback shows device role and network status
 
+## Key Advantages
+
+### No Coordinator Required
+- **Fully Decentralized**: Devices communicate directly via ESP-NOW
+- **No Single Point of Failure**: Network continues operating even if one device fails
+- **No Internet Dependency**: Works completely offline once configured
+- **No Hub Hardware**: No need for ESPHome, Home Assistant, or dedicated coordinator
+
+### Instant Response
+- **Sub-Second Communication**: ESP-NOW provides near-instant device-to-device messaging
+- **Real-Time Automation**: Current detection triggers immediate network response
+- **Reliable Operation**: Mesh network automatically handles device connectivity
+
 ## Hardware Requirements
 
 - **2 or more SONOFF S31 Smart Plugs** (ESP8266-based)
-- Built-in CSE7766 power monitoring chip (for current detection)
-- Built-in relay and LED indicators
+  - Built-in CSE7766 power monitoring chip (for current detection)
+  - Built-in relay and LED indicators
 - No additional hardware or coordinator required
 
 ## Pin Configuration
@@ -44,18 +65,20 @@ GPIO3  - CSE7766 TX (Hardware Serial RX)
    - Install required libraries (see Libraries section)
 
 2. **Flash All Devices**:
+   - see [docs/FLASHING_INSTRUCTIONS.md](docs/FLASHING_INSTRUCTIONS.md) for more information
    - Upload the same firmware to all SONOFF S31 devices
    - Each device will auto-generate a unique ID
    - No device-specific configuration needed
 
 3. **Network Setup**:
-   - **Option 1**: Configure WiFi on all devices for web dashboard access
-   - **Option 2**: Use ESP-NOW only mode (no WiFi required for basic operation)
+   - **Option 1**: Out-of-the-box, ESP-NOW is sufficent for pairing and operation
+   - **Option 2**: Connect to built-in WIFI access point, visit dashboard and configure local WiFi network credentials, and then restart device.
+  
 
 4. **Device Pairing**:
    - Use web interface or button sequence to enter pairing mode
    - Devices automatically discover each other via ESP-NOW
-   - Establish parent-child relationships through web dashboard
+   - Establish parent-child relationships through web dashboard or button sequence
 
 ## Required Libraries
 
@@ -79,15 +102,8 @@ ArduinoJson by Benoit Blanchon
 #define CHILD_TURN_OFF_DELAY 3000           // Delay before turning on children (ms)
 ```
 
-### WiFi Settings (Optional - for web dashboard)
-```cpp
-#define WIFI_SSID "YourWiFiNetwork"         // Leave empty to disable WiFi
-#define WIFI_PASSWORD "YourWiFiPassword"
-```
-
 ### Current Automation Settings
 ```cpp
-#define ENABLE_CURRENT_AUTOMATION true      // Enable parent-child automation
 #define AUTOMATION_CURRENT_THRESHOLD 1.0    // Minimum amps to trigger children
 #define AUTOMATION_DELAY_MS 3000            // Delay before activating children
 ```
@@ -95,9 +111,8 @@ ArduinoJson by Benoit Blanchon
 ## Web Dashboard
 
 Access the web dashboard at:
-- **WiFi Mode**: `http://[device-ip]`
-- **AP Mode**: `http://192.168.4.1`
-- **mDNS**: `http://sonoff-s31.local`
+- **AP Mode**: `http://192.168.4.1` (when connected to device's AP)
+- **mDNS**: `http://sonoff-s31-<unique id>.local` (after WiFi credentials for local network have been configured)
 
 ### Dashboard Features
 
@@ -105,6 +120,7 @@ Access the web dashboard at:
 - **Relay Control**: Toggle power on/off with visual feedback
 - **Device Status**: WiFi connection, uptime, and system information
 - **ESP-NOW Network**: View and control connected ESP-NOW devices
+- **Pairing***: Pair parent-child devices
 - **Responsive Design**: Works on mobile and desktop browsers
 
 ## How It Works
@@ -113,12 +129,14 @@ Access the web dashboard at:
 
 1. **Parent Device**: 
    - Monitors its current consumption via CSE7766 sensor
-   - When load ≥ 1 amp detected, waits 3 seconds then sends "turn ON" to all children
-   - When load drops below 1 amp, immediately sends "turn OFF" to all children
+   - When load ≥ 1 amp detected, immediately sends "current alert" message to all children
+   - When load drops below 1 amp, immediately sends "current alert" message to all children
 
 2. **Child Devices**:
    - Listen for ESP-NOW commands from parent
    - Automatically mirror parent's relay state
+   - when a "current alert" message of "HIGH" is received, turn on load
+   - when a "current alert" message of "LOW" is received, wait 3 seconds and then turn off
    - Can be manually overridden via web interface or button
 
 3. **Automatic Discovery**:
@@ -130,7 +148,8 @@ Access the web dashboard at:
 
 **Message Types:**
 - **Status Broadcasts**: Device state, role, and current measurements
-- **Relay Commands**: Turn on/off/toggle commands between devices  
+- **Relay Commands**: Turn on/off/toggle commands between devices
+- **Current Alerts**: When the current of a sensor (parent) device goes high or low, broadcast to all listeners (children)
 - **Pairing Messages**: Device discovery and relationship establishment
 - **Heartbeat**: Network health monitoring
 
@@ -189,7 +208,6 @@ sonoff_s31_main/
 ├── espnow_handler.cpp    # ESP-NOW communication implementation
 ├── web_interface.h       # Web server header
 ├── web_interface.cpp     # Web server implementation
-└── README.md            # This file
 ```
 
 ## Usage
@@ -347,25 +365,6 @@ For issues and questions:
 2. Review serial debug output
 3. Check hardware connections
 4. Verify library versions
-
-## Version History
-
-- **v2.0.0**: ESP-NOW parent-child automation system with current-based triggering
-- **v1.5.0**: Added device pairing, relationship management, and persistent storage  
-- **v1.0.0**: Initial release with basic ESP-NOW communication and web interface
-
-## Key Advantages
-
-### No Coordinator Required
-- **Fully Decentralized**: Devices communicate directly via ESP-NOW
-- **No Single Point of Failure**: Network continues operating even if one device fails
-- **No Internet Dependency**: Works completely offline once configured
-- **No Hub Hardware**: No need for ESPHome, Home Assistant, or dedicated coordinator
-
-### Instant Response
-- **Sub-Second Communication**: ESP-NOW provides near-instant device-to-device messaging
-- **Real-Time Automation**: Current detection triggers immediate network response
-- **Reliable Operation**: Mesh network automatically handles device connectivity
 
 ---
 

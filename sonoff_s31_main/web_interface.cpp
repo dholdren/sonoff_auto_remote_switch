@@ -571,9 +571,7 @@ async function updateWiFiStatus() {
     const data = await response.json();
     
     document.getElementById('currentSSID').textContent = data.configured ? data.ssid : 'Not configured';
-    document.getElementById('wifiStatus').innerHTML = data.connected ? 
-      '<span class="status-indicator online"></span>Connected' : 
-      '<span class="status-indicator offline"></span>Disconnected';
+    document.querySelector('span#wifiStatus').innerHTML = data.connected ? 'Connected' : 'Disconnected';
   } catch (error) {
     console.error('Error fetching WiFi status:', error);
   }

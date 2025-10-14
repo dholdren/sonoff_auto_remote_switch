@@ -1,7 +1,7 @@
 # Arduino ESP8266 SONOFF S31 Project
 
 # IDE and build files
-.vscode/settings.json
+.vscode
 *.tmp
 *.bak
 *~

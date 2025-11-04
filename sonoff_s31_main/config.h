@@ -66,7 +66,7 @@ struct CurrentAutomation {
 #define PAIRING_LED_SLOW_BLINK 500         // Slow blink interval for parent mode
 
 // Current Automation Configuration
-#define CURRENT_THRESHOLD 0.1              // Current threshold in amps for parent automation
+#define CURRENT_THRESHOLD 0.05             // Current threshold in amps for parent automation (lamp with LED light is between .1 and .15)
 #define CHILD_TURN_OFF_DELAY 3000          // Delay in milliseconds before child turns off
 
 // Flash Storage Configuration (LittleFS)
@@ -91,10 +91,6 @@ struct PairingData {
 // Web Server Configuration
 #define WEB_SERVER_PORT 80
 
-// WebSocket Debug Logging
-#define WEBSOCKET_PORT 81                  // WebSocket port for debug logging
-#define WEBSOCKET_LOGGING_ENABLED 0        // Enable/Disable WebSocket logging
-
 // OTA Update Configuration
 #define OTA_PASSWORD "sonoff123"            // OTA update password
 #define OTA_PORT 8266                       // OTA update port
@@ -107,5 +103,26 @@ struct PairingData {
 #define DEBUG_SERIAL 1                     // Enable/Disable serial debug output
 #define DEBUG_ESPNOW 1                     // Enable/Disable ESP-NOW debug output
 #define DEBUG_SENSOR 1                     // Enable/Disable sensor debug output
+#define DEBUG_MEMORY 0                     // Enable/Disable memory usage debug output
 
-#endif // CONFIG_H
+// MQTT Logging
+#define MQTT_LOGGING_ENABLED 1
+// Using io.adafruit.com (rate limited)
+//#define MQTT_SERVER      "io.adafruit.com"
+//#define MQTT_SERVERPORT  1883
+//#define MQTT_USERNAME    "<username>"
+//#define MQTT_PASSWORD    "<key>"
+//#define MQTT_TOPIC       AIO_USERNAME "/feeds/sonoff_logging"
+
+//Using local network MQTT (mosquitto)
+//Must add this to /etc/mosquitto/mosquitto.conf:
+// listener 1883
+// allow_anonymous true
+
+//TODO: make this configurable via web interface
+#define MQTT_SERVER "192.168.2.103"
+#define MQTT_SERVERPORT 1883
+#define MQTT_USERNAME ""
+#define MQTT_PASSWORD ""
+#define MQTT_TOPIC "sonoff_logging"
+#endif  // CONFIG_H

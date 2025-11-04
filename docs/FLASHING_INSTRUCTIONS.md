@@ -65,7 +65,7 @@
    - Sketch → Include Library → Manage Libraries
    - Install: 
      - `ArduinoJson` by Benoit Blanchon
-     - `Websockets` by Markus Sattler
+     - `Adafruit MQTT Library` by Adafruit
 
 ### 2. Configure Board Settings
 

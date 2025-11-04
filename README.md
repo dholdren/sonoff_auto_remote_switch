@@ -1,9 +1,5 @@
 # SONOFF S31 ESP-NOW Auto Remote Switch
 
-## Disclaimer
-This project was created with the assistance of Github Copilot in VS Code, using the `Claude Sonnet 4` model.
-## 
-
 A decentralized Arduino project that networks 2 or more SONOFF S31 smart plugs using ESP-NOW communication for automatic synchronized control. **no coordinator or hub required**.
 When a load connected to the primary unit turns on/off, all secondary units follow suit automatically.
 
@@ -27,6 +23,7 @@ This project transforms multiple SONOFF S31 devices into a **parent-child networ
 - **CSE7766 Power Monitoring**: Real-time voltage, current, power, and energy measurements
 - **Persistent Configuration**: Device relationships and settings stored in flash memory
 - **Visual Status Indicators**: LED feedback shows device role and network status
+- **Remote Logging via MQTT**: Send logs to an MQTT broker, e.g. mosquitto
 
 ## Key Advantages
 

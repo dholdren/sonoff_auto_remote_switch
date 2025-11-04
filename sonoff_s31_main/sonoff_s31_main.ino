@@ -20,10 +20,25 @@
 #include "web_interface.h"
 #include "espnow_handler.h"
 #include "Logger.h"
+// Use MQTT just for remote logging, not coordination
+// recommend mosquitto server running locally
+#include "Adafruit_MQTT.h"
+#include "Adafruit_MQTT_Client.h"
 
 // Global objects
 ESP8266WebServer server(80);
 CSE7766 cse7766; //Uses Serial, the sensor is connected to Serial RX
+
+/****************************** MQTT ***************************************/
+// Used to connect to the MQTT server.
+WiFiClient client;
+// Setup the MQTT client class by passing in the WiFi client and MQTT server and login details.
+Adafruit_MQTT_Client mqtt(&client, MQTT_SERVER, MQTT_SERVERPORT, MQTT_USERNAME, MQTT_PASSWORD);
+
+// Notice MQTT paths for AIO follow the form: <username>/feeds/<feedname>
+Adafruit_MQTT_Publish sonoff_logging = Adafruit_MQTT_Publish(&mqtt, MQTT_TOPIC);
+
+/****************************** End MQTT ***************************************/
 
 // Device state
 DeviceState deviceState;
@@ -68,6 +83,10 @@ void setup() {
   // Initialize WiFi
   initWiFi();
   
+  // initialize MQTT logging
+  MQTT_connect();  // also in loop() for reconnection
+  logger.setMQTTLogger(&sonoff_logging);
+  
   // Load pairing data from flash
   loadPairingData();
   
@@ -98,6 +117,7 @@ void setup() {
 }
 
 void loop() {
+#if DEBUG_MEMORY
   // Log memory usage periodically
   static unsigned long lastMemoryLog = 0;
   if (millis() - lastMemoryLog > 10000) { // Every 10 seconds
@@ -106,6 +126,7 @@ void loop() {
     logger.printf("Memory: Free=%u bytes, Fragmentation=%u%%\n", freeHeap, fragmentation);
     lastMemoryLog = millis();
   }
+#endif
   
   // Handle OTA updates
   ArduinoOTA.handle();
@@ -114,8 +135,8 @@ void loop() {
   server.handleClient();
   MDNS.update();
   
-  // Handle WebSocket connections
-  handleWebSocket();
+  // MQTT
+  MQTT_connect();
   
   // Handle button press
   handleButton();
@@ -305,7 +326,6 @@ void updateSensorReadings() {
   static unsigned long lastReading = 0;
   logger.withoutSerial([]() { //Skip logging to Serial
     if (millis() - lastReading > 1000) {  // Update every second
-      logger.println("Calling sensor handle()");
       cse7766.handle();
     
       deviceState.voltage = cse7766.getVoltage();
@@ -443,4 +463,38 @@ void initOTA() {
   Serial.printf("OTA: Hostname: %s.local\n", ArduinoOTA.getHostname().c_str());
   Serial.printf("OTA: Port: %d\n", OTA_PORT);
   Serial.println("OTA: Use Arduino IDE -> Tools -> Port -> Network Port");
+}
+
+// Function to connect and reconnect as necessary to the MQTT server.
+// Should be called in the loop function and it will take care if connecting.
+void MQTT_connect() {
+  int8_t ret;
+  static unsigned long lastMQTTAttempt = 0;
+  // Stop if already connected.
+  if (mqtt.connected()) {
+    return;
+  }
+
+  if (lastMQTTAttempt != 0 && millis() - lastMQTTAttempt < 10000) {  // attempt every 10 seconds
+    return;
+  }
+  lastMQTTAttempt = millis();
+
+  Serial.print("Connecting to MQTT... ");
+
+  uint8_t retries = 3;
+  char* lastSSLErrorString;
+  while ((ret = mqtt.connect()) != 0) {  // connect will return 0 for connected
+    Serial.println(mqtt.connectErrorString(ret));
+
+    Serial.println("Retrying ...");
+    //mqtt.disconnect();
+    delay(100);  // wait 100 ms
+    retries--;
+    if (retries == 0) {
+      Serial.println("Gave up on MQTT connection");
+      return;
+    }
+  }
+  Serial.println("MQTT Connected!");
 }

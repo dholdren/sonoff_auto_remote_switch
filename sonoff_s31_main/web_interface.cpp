@@ -7,58 +7,19 @@
 #include "web_interface.h"
 #include "espnow_handler.h"
 #include "Logger.h"
-#include <WebSocketsServer.h>
 #include <LittleFS.h>
 
 extern ESP8266WebServer server;
 extern struct DeviceState deviceState;
 extern const char* HOSTNAME;
 
-// WebSocket server for debug logging
-#if WEBSOCKET_LOGGING_ENABLED
-WebSocketsServer webSocket = WebSocketsServer(WEBSOCKET_PORT);
-#endif
-
 // Global WiFi configuration
 WiFiConfig wifiConfig;
 
-// WebSocket event handler
-void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
-  switch(type) {
-    case WStype_DISCONNECTED:
-      logger.printf("WebSocket[%u] Disconnected!\n", num);
-      break;
-      
-    case WStype_CONNECTED: {
-      IPAddress ip = webSocket.remoteIP(num);
-      logger.printf("WebSocket[%u] Connected from %d.%d.%d.%d url: %s\n", num, ip[0], ip[1], ip[2], ip[3], payload);
-      // Send welcome message
-      webSocket.sendTXT(num, "{\"type\":\"log\",\"message\":\"WebSocket debug logging connected\\n\"}");
-      break;
-    }
-      
-    case WStype_TEXT:
-      logger.printf("WebSocket[%u] received text: %s\n", num, payload);
-      break;
-      
-    default:
-      break;
-  }
-}
-
 void initWebServer() {
-#if WEBSOCKET_LOGGING_ENABLED
-  // Initialize WebSocket server
-  webSocket.begin();
-  webSocket.onEvent(webSocketEvent);
-  
-  // Initialize Logger with WebSocket support
-  logger.begin(&webSocket);
-#endif
   // Web pages
   server.on("/", handleRoot);
   server.on("/style.css", handleStyle);
-  server.on("/js/debugsocket.js", handleDebugSocketJS);
   server.on("/js/status.js", handleStatusJS);
   server.on("/js/peers.js", handlePeersJS);
   server.on("/js/relay.js", handleRelayJS);
@@ -78,7 +39,6 @@ void initWebServer() {
   
   server.begin();
   logger.printf("Web server started on port %d\n", WEB_SERVER_PORT);
-  logger.printf("WebSocket server started on port %d\n", WEBSOCKET_PORT);
 }
 
 void handleRoot() {
@@ -296,50 +256,6 @@ body {
 )CSSDATA";
 
   server.send(200, "text/css", css);
-}
-
-void handleDebugSocketJS() {
-#if !WEBSOCKET_LOGGING_ENABLED
-  server.send(200, "application/javascript", "console.log(\"websocket logging disabled\")");
-  return;
-#else
-  String js = R"DEBUGJSDATA(
-document.addEventListener('DOMContentLoaded', function() {
-  initDebugSocket();
-});
-function initDebugSocket() {
-  const wsPort = window.location.port === '80' || window.location.port === '' ? '81' : (parseInt(window.location.port) + 1);
-  const wsUrl = 'ws://' + window.location.hostname + ':' + wsPort + '/';
-  
-  debugSocket = new WebSocket(wsUrl);
-  
-  debugSocket.onopen = function(event) {
-    console.log('Debug WebSocket connected');
-  };
-  
-  debugSocket.onmessage = function(event) {
-    try {
-      const data = JSON.parse(event.data);
-      if (data.type === 'log') {
-        console.log('[ESP8266]', data.message.trim());
-      }
-    } catch (e) {
-      console.log('[ESP8266 Raw]', event.data);
-    }
-  };
-  
-  debugSocket.onclose = function(event) {
-    console.log('Debug WebSocket disconnected, attempting to reconnect in 3 seconds...');
-    setTimeout(initDebugSocket, 3000);
-  };
-  
-  debugSocket.onerror = function(error) {
-    console.error('WebSocket error:', error);
-  };
-}
-)DEBUGJSDATA";
-  server.send(200, "application/javascript", js);
-#endif
 }
 
 void handleStatusJS() {
@@ -675,12 +591,6 @@ async function clearPairingData() {
   server.send(200, "application/javascript", js);
 }
 
-void handleWebSocket() {
-#if WEBSOCKET_LOGGING_ENABLED
-  webSocket.loop();
-#endif
-}
-
 void handleGetStatus() {
   server.send(200, "application/json", getStatusJSON());
 }
@@ -942,7 +852,6 @@ String generateWebPage() {
         </div>
     </div>
     
-        <script src="/js/debugsocket.js"></script>
         <script src="/js/status.js"></script>
         <script src="/js/peers.js"></script>
         <script src="/js/relay.js"></script>

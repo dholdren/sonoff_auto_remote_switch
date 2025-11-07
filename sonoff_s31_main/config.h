@@ -66,7 +66,7 @@ struct CurrentAutomation {
 #define PAIRING_LED_SLOW_BLINK 500         // Slow blink interval for parent mode
 
 // Current Automation Configuration
-#define CURRENT_THRESHOLD 0.05             // Current threshold in amps for parent automation (lamp with LED light is between .1 and .15)
+#define CURRENT_THRESHOLD 0.075            // Current threshold in amps for parent automation (lamp with LED light is between .1 and .15), lowest possible is .05
 #define CHILD_TURN_OFF_DELAY 3000          // Delay in milliseconds before child turns off
 
 // Flash Storage Configuration (LittleFS)

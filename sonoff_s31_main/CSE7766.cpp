@@ -7,6 +7,7 @@
 
 #include "CSE7766.h"
 #include "logger.h"
+#include "config.h"
 
 // Constructor
 CSE7766::CSE7766() {
@@ -146,8 +147,13 @@ void CSE7766::_process() {
 
     #if DEBUG_SENSOR
         logger.println("[SENSOR] CSE7766: _process: ");
-        for (byte i=0; i<24; i++) LOGGER.printf("%02X ", _data[i]);
-        DEBUG_MSG("\n");
+        char converted[2];
+        String buffer;
+        for (int i=0; i < 24; i++) {
+          snprintf(converted, 3, "%02X", _data[i]);
+          buffer += (String)converted + " ";
+        }
+        logger.println(buffer.c_str());
     #endif
 
     // Checksum
@@ -204,9 +210,13 @@ void CSE7766::_process() {
     }
 
     // Calculate current
+    // In some low-power scenarios (no load), the CSE7766 can report higher currents 
+    // e.g. 89mA when power was reported as 0.55W
+    // To avoid false-positive, calculate current via power/voltage first
+    // Found this solution in esphome: https://github.com/esphome/esphome/pull/6180
     _current = 0;
     if ((adj & 0x20) == 0x20) {
-        if (_active > 0) {
+        if (_active && _voltage && (_voltage > 1.0f) && ((_active / _voltage) > 0.05f)) {
             unsigned long current_cycle = _data[11] << 16 | _data[12] << 8 | _data[13]; // 3376
             _current = _ratioC * _coefC / current_cycle / CSE7766_V1R;                  // 16030 / 3376 = 4.75
         }

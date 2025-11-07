@@ -232,7 +232,7 @@ void CSE7766::_process() {
     } else {
         difference = cf_pulses - cf_pulses_last;
     }
-    _energy += difference * (float) _coefP / 1000000.0;
+    _energy += difference * (float) _coefP / 1000000.0 / 3600.0;
     cf_pulses_last = cf_pulses;
 
 }

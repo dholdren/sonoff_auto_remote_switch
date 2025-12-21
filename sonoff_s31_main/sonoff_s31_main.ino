@@ -113,6 +113,9 @@ void setup() {
   
   // Print device information
   logger.printf("Device ID: %s\n", deviceState.deviceId.c_str());
+  // display last reset information
+  logger.printf("RESET REASON: ");
+  logger.println(ESP.getResetInfo());
   logger.println("Setup completed successfully!");
 }
 
@@ -141,8 +144,10 @@ void loop() {
   // Handle button press
   handleButton();
   
-  // Update sensor readings
-  updateSensorReadings();
+  if (deviceState.isParent) {
+    // Update sensor readings only if parent
+    updateSensorReadings();
+  }
   
   // Handle ESP-NOW messages
   handleESPNOWMessages();

@@ -102,7 +102,7 @@ struct PairingData {
 // Debug Configuration
 #define DEBUG_SERIAL 1                     // Enable/Disable serial debug output
 #define DEBUG_ESPNOW 1                     // Enable/Disable ESP-NOW debug output
-#define DEBUG_SENSOR 1                     // Enable/Disable sensor debug output
+#define DEBUG_SENSOR 0                     // Enable/Disable sensor debug output
 #define DEBUG_MEMORY 0                     // Enable/Disable memory usage debug output
 
 // MQTT Logging

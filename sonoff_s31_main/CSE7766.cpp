@@ -269,6 +269,7 @@ void CSE7766::_read() {
 
         _data[index++] = byte;
         if (index > 23) {
+            ESP.wdtFeed();
             Serial.flush();
             break;
         }
